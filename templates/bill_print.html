@@ -1,0 +1,93 @@
+<!doctype html><html><head><meta charset=utf-8><title>Bill #{{ o.number }}</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:'Courier New',monospace;background:#fff;color:#000;margin:0;padding:20px;font-size:14px}
+.bill{max-width:320px;margin:0 auto;border:1px dashed #999;padding:16px}
+h1{text-align:center;font-size:18px;margin:0 0 4px;letter-spacing:2px}
+h2{text-align:center;font-size:14px;margin:0 0 8px;font-weight:400;color:#555}
+.head{text-align:center;border-bottom:1px dashed #999;padding-bottom:8px;margin-bottom:8px}
+.info{font-size:13px;line-height:1.5;margin:6px 0;border-bottom:1px dashed #999;padding-bottom:6px}
+.info b{display:inline-block;min-width:70px}
+table.items{width:100%;font-size:13px;border-collapse:collapse;margin:8px 0}
+table.items th{text-align:left;border-bottom:1px dashed #999;padding:4px 0;font-weight:700}
+table.items th:last-child,table.items td:last-child{text-align:right}
+table.items td{padding:3px 0;vertical-align:top}
+table.items td.qty{width:28px}
+.totals{border-top:1px dashed #999;padding-top:8px;margin-top:8px}
+.totals .row{display:flex;justify-content:space-between;font-size:13px;padding:2px 0}
+.totals .row.grand{font-weight:700;font-size:15px;padding-top:6px;border-top:1px solid #000;margin-top:4px}
+.totals .row.discount{color:#c0392b}
+.footer{text-align:center;border-top:1px dashed #999;padding-top:8px;margin-top:10px;font-size:12px;color:#555}
+.actions{max-width:320px;margin:20px auto;text-align:center;display:flex;gap:8px;justify-content:center}
+.actions button{padding:10px 18px;font-size:14px;border:0;border-radius:6px;background:#8b5a2b;color:#fff;cursor:pointer;font-family:system-ui}
+.actions button.sec{background:#eee;color:#333}
+.status{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:#eee}
+.status.paid{background:#d4edda;color:#1a6b1a}
+.status.unpaid{background:#f8d7da;color:#8b1a1a}
+@media print{
+  body{padding:0;font-size:12px}
+  .bill{max-width:100%;border:0}
+  .actions{display:none}
+}
+</style></head>
+<body>
+
+<div class="actions">
+  <button onclick="window.print()">🖨 Print Bill</button>
+  <button class="sec" onclick="window.close()">Close</button>
+</div>
+
+<div class="bill">
+  <div class="head">
+    <h1>{{ cafe }}</h1>
+    <h2>TAX INVOICE</h2>
+    <div>Thank you for visiting us!</div>
+  </div>
+
+  <div class="info">
+    <div><b>Order:</b> #{{ o.number }}</div>
+    <div><b>Table:</b> {{ o.table.name }}</div>
+    <div><b>Date:</b> {{ printed_at }}</div>
+    <div><b>Bill To:</b> {{ o.customer.name }}</div>
+    <div><b>Phone:</b> {{ o.customer.phone }}</div>
+  </div>
+
+  <table class="items">
+    <thead>
+      <tr><th style="width:28px">Qty</th><th>Item</th><th>Amount</th></tr>
+    </thead>
+    <tbody>
+      {% for i in o.items %}
+      <tr>
+        <td class="qty">{{ i.qty }}×</td>
+        <td>{{ i.name }}</td>
+        <td>Rs. {{ '%.0f'|format(i.price * i.qty) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div class="row"><span>Subtotal</span><span>Rs. {{ '%.0f'|format(o.subtotal) }}</span></div>
+    {% if o.discount > 0 %}
+    <div class="row discount"><span>Discount{% if o.promo_name %} ({{ o.promo_name }}){% endif %}</span><span>− Rs. {{ '%.0f'|format(o.discount) }}</span></div>
+    {% endif %}
+    <div class="row grand"><span>TOTAL</span><span>Rs. {{ '%.0f'|format(o.total) }}</span></div>
+    <div class="row" style="margin-top:6px">
+      <span>Payment</span>
+      <span class="status {{ 'paid' if o.payment_status=='paid' else 'unpaid' }}">{{ o.payment_status|upper }}</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>** Thank you for dining with us **</div>
+    <div>Please visit again</div>
+    <div style="margin-top:6px;font-size:10px;color:#999">Powered by Café X POS</div>
+  </div>
+</div>
+
+<script>
+  // Auto-open print dialog when the page loads
+  window.addEventListener('load', () => setTimeout(() => window.print(), 300));
+</script>
+</body></html>

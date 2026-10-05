@@ -1,7 +1,7 @@
-﻿import os, io, secrets
+﻿import os, io, secrets, json as _json
 from datetime import datetime, date, timedelta, timezone
 from functools import wraps
-from flask import Flask, request, session, redirect, jsonify, render_template, send_file, abort
+from flask import Flask, request, session, redirect, jsonify, render_template, send_file, abort, Response
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import qrcode
@@ -88,7 +88,7 @@ class Item(db.Model):
     veg = db.Column(db.Boolean, default=True)
     available = db.Column(db.Boolean, default=True)
     featured = db.Column(db.Boolean, default=False)
-    category = db.relationship("Category")   # ← THE FIX
+    category = db.relationship("Category")
 
 
 class Order(db.Model):
@@ -163,7 +163,6 @@ def loyalty(c):
 
 
 def free_table_if_done(table_id):
-    """If no live orders remain on this table, mark it available and rotate its QR token."""
     still_open = Order.query.filter(
         Order.table_id == table_id,
         Order.status.in_(["new", "accepted", "preparing", "ready", "served"]),
@@ -189,6 +188,24 @@ def ticket(o):
           "TOTAL: Rs.".ljust(30) + f"{o.total:>12,.0f}",
           f"Time: {o.created:%d %b %Y %I:%M %p}", "Thank you!".center(w)]
     return "\n".join(L)
+
+
+def serialize_order(o):
+    """Shared helper for admin_orders and admin_orders_stream."""
+    return {
+        "id": o.id,
+        "number": o.number,
+        "table": o.table.name,
+        "customer": o.customer.name,
+        "phone": o.customer.phone,
+        "total": float(o.total),
+        "discount": float(o.discount),
+        "status": o.status,
+        "time": o.created.strftime("%I:%M %p"),
+        "paid": o.payment_status,
+        "promo": o.promo_name,
+        "items": [f"{i.qty} x {i.name}" for i in o.items],
+    }
 
 
 _bootstrapped = False
@@ -260,7 +277,6 @@ def menu():
         return "Please scan the QR code on your table.", 400
 
     c = db.session.get(Customer, session.get("cid", 0))
-
     if c and session.get("ckey") and c.session_key and session["ckey"] != c.session_key:
         session.pop("cid", None)
         session.pop("ckey", None)
@@ -285,6 +301,8 @@ def join():
     if not name or len(phone) < 7:
         return "Enter a valid name and phone.", 400
     c = Customer.query.filter_by(phone=phone).first() or Customer(name=name, phone=phone)
+    if c.name != name and name:
+        c.name = name
     if c.disabled:
         return "Account disabled.", 403
     if not c.session_key:
@@ -453,7 +471,7 @@ def admin():
         tables=Table.query.all(),
         cats=Category.query.all(),
         items=Item.query.order_by(Item.category_id, Item.name).all(),
-        customers=Customer.query.all(),
+        customers=Customer.query.order_by(Customer.id.desc()).limit(200).all(),
         cfg={k: setting(k) for k in LOYALTY_DEFAULTS},
         failed=PrintJob.query.filter_by(status="failed").count(),
     )
@@ -466,13 +484,40 @@ def admin_orders():
     if request.args.get("q"):
         s = request.args["q"]
         q = q.join(Customer).filter(db.or_(Customer.name.ilike(f"%{s}%"), Customer.phone.like(f"%{s}%")))
-    return jsonify([{
-        "id": o.id, "number": o.number, "table": o.table.name,
-        "customer": o.customer.name, "phone": o.customer.phone,
-        "total": float(o.total), "discount": float(o.discount), "status": o.status,
-        "time": o.created.strftime("%I:%M %p"), "paid": o.payment_status,
-        "promo": o.promo_name, "items": [f"{i.qty} x {i.name}" for i in o.items]
-    } for o in q.limit(60)])
+    return jsonify([serialize_order(o) for o in q.limit(60)])
+
+
+@app.get("/admin/api/orders/stream")
+@need()
+def admin_orders_stream():
+    """Server-Sent Events for live order updates."""
+    import time as _time
+
+    def event_stream():
+        last_sig = ""
+        while True:
+            try:
+                orders = Order.query.order_by(Order.id.desc()).limit(30).all()
+                sig = "|".join(f"{o.id}:{o.status}:{o.payment_status}" for o in orders)
+                if sig != last_sig:
+                    last_sig = sig
+                    payload = _json.dumps([serialize_order(o) for o in orders])
+                    yield f"data: {payload}\n\n"
+                else:
+                    yield ": keepalive\n\n"
+            except Exception as e:
+                yield f"event: error\ndata: {str(e)}\n\n"
+            _time.sleep(3)
+
+    return Response(
+        event_stream(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @app.post("/admin/order/<int:oid>/status")
@@ -498,6 +543,16 @@ def reprint(oid):
     db.session.add(PrintJob(order_id=oid))
     db.session.commit()
     return jsonify(ok=True)
+
+
+@app.get("/admin/order/<int:oid>/print")
+@need()
+def print_bill(oid):
+    o = db.session.get(Order, oid)
+    if not o:
+        abort(404)
+    return render_template("bill_print.html", o=o, cafe=CAFE,
+                           printed_at=now().strftime("%d %b %Y · %I:%M %p"))
 
 
 @app.post("/admin/table")

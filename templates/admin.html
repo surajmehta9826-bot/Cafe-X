@@ -7,28 +7,28 @@ header{background:var(--brown);color:#fff;padding:12px 16px;display:flex;gap:14p
 header b{font-size:16px;margin-right:8px}
 header a{color:#fff;cursor:pointer;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:14px}
 header a:hover{background:#00000022}
-header a.primary{background:#00000033}
 section{display:none;padding:14px;max-width:1200px;margin:auto}
 section.on{display:block}
-.o{background:#fff;border-radius:10px;padding:12px;margin:8px 0;border-left:6px solid #c33;box-shadow:0 1px 3px #0001}
+
 .s{display:flex;gap:12px;flex-wrap:wrap}
 .s div{background:#fff;padding:14px 16px;border-radius:10px;flex:1;min-width:160px;box-shadow:0 1px 3px #0001}
 .s h2{margin:4px 0 0;color:var(--brown);font-size:22px}
 .s .label{color:#8b7355;font-size:13px;font-weight:500}
 .s .sub{color:#aaa;font-size:11px;margin-top:2px}
+
 input,select{padding:8px 10px;margin:3px 2px;border:1px solid #d8c9b3;border-radius:6px;font-size:14px;background:#fff}
 input:focus,select:focus{outline:none;border-color:var(--brown)}
 button{background:var(--brown);color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:14px}
 button:hover{background:var(--brown-d)}
 button.sec{background:#e8dcc8;color:#5b3d1a}
 button.sec:hover{background:#dcc9a8}
-button.danger{background:#c0392b}
-button.danger:hover{background:#962d22}
+
 table{background:#fff;width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px #0001;margin-top:8px}
 th{background:var(--cream);text-align:left;padding:10px 12px;color:#5b3d1a;font-weight:600;border-bottom:1px solid var(--border);font-size:13px;text-transform:uppercase;letter-spacing:.03em}
 td{padding:10px 12px;border-bottom:1px solid #f3ebdc;font-size:14px;vertical-align:middle}
 tr:last-child td{border-bottom:0}
 tr:hover{background:#fdf9f2}
+
 .menu-cat{background:var(--cream);font-weight:700;color:#5b3d1a;padding:8px 12px;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
 .pill{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600}
 .pill.avail{background:#d4edda;color:#1a6b1a}
@@ -36,9 +36,87 @@ tr:hover{background:#fdf9f2}
 .pill.feat{background:#fde8c6;color:#8b5a2b}
 .menu-actions{display:flex;gap:6px;flex-wrap:wrap}
 .menu-actions form{display:inline}
-/* Order card status dropdown — fix for last options being hidden */
-.o{overflow:visible !important;position:relative;z-index:1}
-.o select{position:relative;z-index:2}
+
+/* ---------- Order bill card ---------- */
+.o{
+  background:#fff;
+  border-radius:12px;
+  padding:0;
+  margin:10px 0;
+  border:1px solid #eee;
+  border-left:6px solid #999;
+  box-shadow:0 1px 3px #0001;
+  overflow:visible;
+  position:relative;
+  font-size:14px;
+  transition:box-shadow .15s ease;
+}
+.o:hover{ box-shadow:0 3px 10px #0002; }
+.o.new       { border-left-color:#c0392b; }
+.o.accepted  { border-left-color:#e67e22; }
+.o.preparing { border-left-color:#f1c40f; }
+.o.ready     { border-left-color:#2ecc71; }
+.o.served    { border-left-color:#3498db; }
+.o.completed { border-left-color:#16a085; opacity:.9; }
+.o.cancelled { border-left-color:#7f8c8d; opacity:.65; }
+.o.paid      { background:linear-gradient(0deg,#f0fdf4,#fff 60%); }
+
+.bill-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#faf6ee;border-bottom:1px solid #eee;border-radius:11px 11px 0 0;flex-wrap:wrap;gap:6px}
+.bill-number{font-weight:700;font-size:16px;color:#5b3d1a;margin-right:10px}
+.bill-table{background:#8b5a2b;color:#fff;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600}
+.bill-time{color:#888;font-size:12px}
+
+.bill-customer{padding:8px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed #eee;font-size:14px;flex-wrap:wrap;gap:6px}
+.bill-customer .phone{color:#8b5a2b;text-decoration:none;font-size:13px}
+.bill-customer .phone:hover{text-decoration:underline}
+
+.bill-items{padding:10px 14px;border-bottom:1px dashed #eee}
+.bill-item{display:flex;align-items:center;padding:3px 0}
+.bill-item .qty{min-width:32px;font-weight:600;color:#8b5a2b}
+.bill-item .name{color:#2b2118}
+
+.bill-totals{padding:10px 14px;background:#fdfaf4;border-bottom:1px dashed #eee}
+.bill-totals .row{display:flex;justify-content:space-between;padding:2px 0;color:#555;font-size:13px}
+.bill-totals .row.discount{color:#c0392b}
+.bill-totals .row.total{font-size:17px;font-weight:700;color:#2b2118;padding-top:6px;border-top:1px solid #eee;margin-top:4px}
+.promo-tag{background:#fde8c6;color:#8b5a2b;padding:1px 6px;border-radius:10px;font-size:11px;margin-left:4px}
+
+.bill-actions{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:12px 14px;flex-wrap:wrap}
+.status-wrap{display:flex;flex-direction:column;gap:4px}
+.status-wrap label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.status-select{padding:8px 12px;border-radius:6px;border:1px solid #d8c9b3;font-size:14px;font-weight:600;background:#fff;color:#2b2118;cursor:pointer;min-width:130px}
+.status-select.new       { background:#fdeceb; color:#c0392b; border-color:#f4b8b8; }
+.status-select.accepted  { background:#fdefdd; color:#e67e22; border-color:#f4d0a8; }
+.status-select.preparing { background:#fef8dc; color:#a58500; border-color:#f0e0a0; }
+.status-select.ready     { background:#e8f9ee; color:#1a6b1a; border-color:#b8e6c5; }
+.status-select.served    { background:#e4f0fa; color:#0a63b0; border-color:#b5d4f0; }
+.status-select.completed { background:#e8f6f2; color:#16a085; border-color:#b5e0d6; }
+.status-select.cancelled { background:#eee; color:#666; }
+
+.action-buttons{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.action-buttons button{padding:9px 14px;font-size:14px;font-weight:600;border-radius:8px}
+.pay-btn{background:#27ae60 !important;color:#fff}
+.pay-btn:hover{background:#1e8449 !important}
+.paid-badge{background:#d4edda;color:#1a6b1a;padding:8px 14px;border-radius:8px;font-weight:700;font-size:14px}
+
+/* ---------- Bulk actions ---------- */
+.bulk-check{position:absolute;top:10px;left:-22px;cursor:pointer}
+.bulk-check input{width:18px;height:18px;cursor:pointer}
+.bulk-bar{
+  position:fixed;bottom:20px;left:50%;
+  transform:translateX(-50%) translateY(120%);
+  background:#2b2118;color:#fff;padding:12px 20px;border-radius:99px;
+  display:flex;gap:12px;align-items:center;box-shadow:0 6px 24px #0004;
+  z-index:100;transition:transform .25s ease;font-size:14px;
+}
+.bulk-bar.on{transform:translateX(-50%) translateY(0)}
+.bulk-bar b{font-size:15px;margin-right:6px}
+.bulk-bar select,.bulk-bar button{padding:7px 12px;border-radius:6px;border:0;font-size:13px;cursor:pointer}
+.bulk-bar select{background:#fff;color:#333}
+.bulk-bar button{background:#8b5a2b;color:#fff;font-weight:600}
+.bulk-bar button:hover{background:#6d4620}
+.bulk-bar button.danger{background:#c0392b}
+.bulk-bar button.danger:hover{background:#962d22}
 </style></head>
 <body>{% include '_csrf.html' %}
 <header>
@@ -62,7 +140,7 @@ tr:hover{background:#fdf9f2}
 <section id=orders class=on>
   <div class=s>
     <div><div class="label">Today's sales</div><h2>Rs. {{'%.0f'|format(stats.sales)}}</h2></div>
-    <div><div class="label">Total orders today</div><h2>{{stats.orders}}</h2></div>
+    <div><div class="label">Orders today</div><h2>{{stats.orders}}</h2></div>
     <div><div class="label">Pending orders</div><h2>{{stats.pending_orders}}</h2><div class="sub">new / accepted / preparing</div></div>
     <div><div class="label">Pending payments</div><h2>{{stats.pending_payments}}</h2><div class="sub">unpaid bills</div></div>
     <div><div class="label">Print failures</div><h2>{{failed}}</h2></div>
@@ -126,11 +204,8 @@ tr:hover{background:#fdf9f2}
           <td><b>Rs. {{ '%.0f'|format(i.price) }}</b></td>
           <td>{% if i.veg %}<span style="color:#1a6b1a">● Veg</span>{% else %}<span style="color:#8b1a1a">● Non-veg</span>{% endif %}</td>
           <td>
-            {% if i.available %}
-              <span class="pill avail">Available</span>
-            {% else %}
-              <span class="pill sold">Sold out</span>
-            {% endif %}
+            {% if i.available %}<span class="pill avail">Available</span>
+            {% else %}<span class="pill sold">Sold out</span>{% endif %}
           </td>
           <td class="menu-actions">
             <a href=/admin/item/{{i.id}}/options><button class=sec type=button>Options</button></a>
@@ -153,12 +228,12 @@ tr:hover{background:#fdf9f2}
 
 <section id=customers>
   <div style="display:flex;justify-content:space-between;margin-bottom:12px">
-    <h2 style="margin:0;color:var(--brown)">Quick customer list</h2>
+    <h2 style="margin:0;color:var(--brown)">Quick customer list ({{ customers|length }})</h2>
     <a href="/admin/customers"><button class=sec type=button>Full customer manager →</button></a>
   </div>
   <table>
-    <thead><tr><th>Name</th><th>Phone</th><th>Joined</th></tr></thead>
-    {% for c in customers %}<tr><td><a href=/admin/customer/{{c.id}}>{{c.name}}</a></td><td>{{c.phone}}</td><td>{{c.created.strftime('%d %b %Y')}}</td></tr>{% endfor %}
+    <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Joined</th></tr></thead>
+    {% for c in customers %}<tr><td>{{c.id}}</td><td><a href=/admin/customer/{{c.id}}>{{c.name}}</a></td><td>{{c.phone}}</td><td>{{c.created.strftime('%d %b %Y')}}</td></tr>{% endfor %}
   </table>
 </section>
 
@@ -172,44 +247,221 @@ tr:hover{background:#fdf9f2}
 </section>
 {% endif %}
 
+<!-- Bulk action bar -->
+<div class="bulk-bar" id="bulk-bar">
+  <b id="bulk-count">0</b> selected
+  <select id="bulk-status">
+    <option value="">Set status…</option>
+    <option value="new">new</option>
+    <option value="accepted">accepted</option>
+    <option value="preparing">preparing</option>
+    <option value="ready">ready</option>
+    <option value="served">served</option>
+    <option value="completed">completed</option>
+    <option value="cancelled">cancelled</option>
+  </select>
+  <button onclick="bulkSetStatus()">Apply</button>
+  <button class="danger" onclick="clearBulkSelection()">Clear</button>
+</div>
+
 <script>
-const go=n=>{document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id==n))};
-if(location.hash)go(location.hash.slice(1));
-const ST={{statuses|tojson}};
-let last=0;
-async function poll(){
-  const d=await(await fetch('/admin/api/orders?q='+encodeURIComponent(document.getElementById('q').value))).json();
-  if(d.length&&d[0].id>last&&last){try{new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=').play()}catch(e){}}
-  last=d.length?d[0].id:last;
-  document.getElementById('ol').innerHTML=d.map(o=>`<div class=o><b>#${o.number} · Table ${o.table}</b> · ${o.time}<br>${o.customer} · ${o.phone}<br>${o.items.join('<br>')}<br>
-Discount Rs. ${o.discount} · <b>Total Rs. ${o.total}</b><br><select onchange="st(${o.id},this.value)">${ST.map(s=>`<option ${s==o.status?'selected':''}>${s}</option>`).join('')}</select>
-<button class=sec onclick="fetch('/admin/order/${o.id}/reprint',{method:'POST'})">Reprint</button>
-${o.paid=='paid'?'💰 Paid':`<button onclick="pay(${o.id})">Mark paid</button>`}${o.promo?' 🏷 '+o.promo:''}</div>`).join('');
+const go = n => { document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === n)); };
+if (location.hash) go(location.hash.slice(1));
+const ST = {{ statuses|tojson }};
+let last = 0;
+
+// ---------- Sound ----------
+let audioCtx = null;
+function playNewOrderBeep(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime;
+    [880, 1320].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.15, t + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.15 + 0.3);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t + i * 0.15);
+      osc.stop(t + i * 0.15 + 0.3);
+    });
+  }catch(e){}
 }
+
+// ---------- Rendering ----------
+function renderOrders(d){
+  document.getElementById('ol').innerHTML = d.map(o => {
+    const paid = o.paid === 'paid';
+    const itemsHtml = o.items.map(line => {
+      const m = line.match(/^(\d+)\s*x\s*(.+)$/);
+      if(!m) return `<div class="bill-item"><span class="name">${line}</span></div>`;
+      return `<div class="bill-item"><span class="qty">${m[1]}×</span><span class="name">${m[2]}</span></div>`;
+    }).join('');
+    const subtotal = o.discount > 0 ? (o.total + o.discount) : o.total;
+    const totalsHtml = o.discount > 0 ? `
+      <div class="row"><span>Subtotal</span><span>Rs. ${subtotal.toFixed(0)}</span></div>
+      <div class="row discount">
+        <span>Discount${o.promo ? ` <span class="promo-tag">🏷 ${o.promo}</span>` : ''}</span>
+        <span>− Rs. ${o.discount.toFixed(0)}</span>
+      </div>
+      <div class="row total"><span>Total</span><span>Rs. ${o.total.toFixed(0)}</span></div>
+    ` : `<div class="row total"><span>Total</span><span>Rs. ${o.total.toFixed(0)}</span></div>`;
+
+    return `
+    <div class="o ${o.status}${paid ? ' paid' : ''}" data-id="${o.id}">
+      <label class="bulk-check">
+        <input type="checkbox" class="order-check" value="${o.id}" onchange="updateBulkBar()">
+      </label>
+      <div class="bill-head">
+        <div>
+          <span class="bill-number">#${o.number}</span>
+          <span class="bill-table">Table ${o.table}</span>
+        </div>
+        <div class="bill-time">🕐 ${o.time}</div>
+      </div>
+      <div class="bill-customer">
+        <b>${o.customer}</b>
+        <a href="tel:${o.phone}" class="phone">📞 ${o.phone}</a>
+      </div>
+      <div class="bill-items">${itemsHtml}</div>
+      <div class="bill-totals">${totalsHtml}</div>
+      <div class="bill-actions">
+        <div class="status-wrap">
+          <label>Status</label>
+          <select class="status-select ${o.status}" onchange="st(${o.id}, this.value)">
+            ${ST.map(s=>`<option ${s==o.status?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="action-buttons">
+          <button class="sec" onclick="window.open('/admin/order/${o.id}/print','_blank')" title="Print bill">🧾 Bill</button>
+          <button class="sec" onclick="fetch('/admin/order/${o.id}/reprint',{method:'POST'})" title="Reprint ticket">🖨 Reprint</button>
+          ${paid
+            ? `<span class="paid-badge">✓ Paid</span>`
+            : `<button class="pay-btn" onclick="pay(${o.id})">💵 Mark paid</button>`}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  updateBulkBar();
+}
+
+async function poll(){
+  const d = await(await fetch('/admin/api/orders?q=' + encodeURIComponent(document.getElementById('q').value))).json();
+  if(d.length && d[0].id > last && last > 0){
+    playNewOrderBeep();
+  }
+  last = d.length ? d[0].id : last;
+  renderOrders(d);
+}
+
+// ---------- SSE ----------
+let sseSource = null;
+let sseRetryDelay = 5000;
+let useSSE = true;
+
+function startSSE(){
+  if(!useSSE) return;
+  try{
+    if(sseSource) sseSource.close();
+    sseSource = new EventSource('/admin/api/orders/stream');
+    sseSource.onmessage = (ev) => {
+      // Ignore keepalive comments
+      if(!ev.data || ev.data.trim().startsWith(':')) return;
+      try{
+        const d = JSON.parse(ev.data);
+        if(!Array.isArray(d)) return;
+        if(d.length && d[0].id > last && last > 0){
+          playNewOrderBeep();
+        }
+        last = d.length ? d[0].id : last;
+        renderOrders(d);
+        sseRetryDelay = 5000; // reset backoff on success
+      }catch(e){ /* ignore malformed */ }
+    };
+    sseSource.onerror = () => {
+      if(sseSource){ sseSource.close(); sseSource = null; }
+      if(sseRetryDelay < 60000){
+        setTimeout(startSSE, sseRetryDelay);
+        sseRetryDelay = Math.min(sseRetryDelay * 2, 60000);
+      } else {
+        useSSE = false;
+        setInterval(poll, 4000);
+      }
+    };
+  }catch(e){
+    useSSE = false;
+    setInterval(poll, 4000);
+  }
+}
+
+// ---------- Actions ----------
 async function pay(id){
-  const r=await fetch(`/admin/order/${id}/pay`,{method:'POST'});
-  const d=await r.json();
+  const r = await fetch(`/admin/order/${id}/pay`, {method:'POST'});
+  const d = await r.json();
   if(d.rotated) alert('✅ Bill paid.\n\nTable QR has been rotated. Download the new QR from Tables.');
   else alert('✅ Bill paid. Order marked as completed.');
   poll();
 }
-async function st(id,s){await fetch(`/admin/order/${id}/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:s})})}
+
+async function st(id, s){
+  await fetch(`/admin/order/${id}/status`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({status:s})
+  });
+  poll();
+}
+
 function filterMenu(){
-  const q=document.getElementById('menu-filter').value.toLowerCase();
-  document.querySelectorAll('#menu-table tbody tr[data-name]').forEach(tr=>{
+  const q = document.getElementById('menu-filter').value.toLowerCase();
+  document.querySelectorAll('#menu-table tbody tr[data-name]').forEach(tr => {
     tr.style.display = tr.dataset.name.includes(q) ? '' : 'none';
   });
-  const rows=[...document.querySelectorAll('#menu-table tbody tr')];
-  for(let i=0;i<rows.length;i++){
+  const rows = [...document.querySelectorAll('#menu-table tbody tr')];
+  for(let i = 0; i < rows.length; i++){
     if(rows[i].classList.contains('menu-cat-row')){
-      let visible=false;
-      for(let j=i+1;j<rows.length;j++){
+      let visible = false;
+      for(let j = i + 1; j < rows.length; j++){
         if(rows[j].classList.contains('menu-cat-row')) break;
-        if(rows[j].style.display!=='none'){visible=true;break;}
+        if(rows[j].style.display !== 'none'){ visible = true; break; }
       }
       rows[i].style.display = visible ? '' : 'none';
     }
   }
 }
-poll();setInterval(poll,4000)
+
+// ---------- Bulk actions ----------
+function updateBulkBar(){
+  const checked = document.querySelectorAll('.order-check:checked');
+  const bar = document.getElementById('bulk-bar');
+  document.getElementById('bulk-count').textContent = checked.length;
+  bar.classList.toggle('on', checked.length > 0);
+}
+
+function clearBulkSelection(){
+  document.querySelectorAll('.order-check:checked').forEach(cb => cb.checked = false);
+  updateBulkBar();
+}
+
+async function bulkSetStatus(){
+  const status = document.getElementById('bulk-status').value;
+  if(!status){ alert('Pick a status first'); return; }
+  const ids = [...document.querySelectorAll('.order-check:checked')].map(cb => cb.value);
+  if(!ids.length) return;
+  if(!confirm(`Set status to "${status}" for ${ids.length} order(s)?`)) return;
+  await Promise.all(ids.map(id => fetch(`/admin/order/${id}/status`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({status})
+  })));
+  clearBulkSelection();
+  poll();
+}
+
+// ---------- Init ----------
+poll();
+startSSE();
+setInterval(() => { if(!sseSource) poll(); }, 30000);
 </script></body></html>
