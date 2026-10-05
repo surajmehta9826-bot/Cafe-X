@@ -33,6 +33,9 @@ CAFE = os.getenv("CAFE_NAME", "Cafe X")
 BASE_URL = os.getenv("BASE_URL", "http://localhost:5000")
 PRINT_KEY = os.getenv("PRINT_API_KEY", "change-me-bridge-key")
 
+if os.getenv("FLASK_DEBUG") == "1" and os.getenv("RENDER"):
+    print("WARNING: DEBUG MODE ON IN PRODUCTION", flush=True)
+
 STATUSES = ["new", "accepted", "preparing", "ready", "served", "completed", "cancelled"]
 MSG = {
     "new": "Order received",
@@ -197,6 +200,16 @@ def _bootstrap():
             if not db.session.get(Setting, k):
                 db.session.add(Setting(key=k, value=v))
         db.session.commit()
+
+        # Auto-seed full menu if DB is nearly empty
+        if Item.query.count() < 10:
+            try:
+                import seed_data
+                seed_data.run()
+                print("[bootstrap] menu auto-seeded", flush=True)
+            except Exception as e:
+                print(f"[bootstrap] auto-seed failed: {e}", flush=True)
+
         _bootstrapped = True
     except Exception as e:
         print(f"[bootstrap] {e}", flush=True)
@@ -220,12 +233,29 @@ def menu():
         tb = Table.query.filter_by(token=t, active=True).first()
         if not tb:
             return "Invalid or inactive table QR code.", 404
+
+        # NEW: If scanning a different table (or rotated token),
+        # clear the customer so they must re-identify.
+        if session.get("table_token") and session["table_token"] != tb.token:
+            session.pop("cid", None)
+
         session["table_id"] = tb.id
+        session["table_token"] = tb.token
+
     tb = db.session.get(Table, session.get("table_id", 0))
     if not tb:
         return "Please scan the QR code on your table.", 400
+
     c = db.session.get(Customer, session.get("cid", 0))
     return render_template("menu.html", cafe=CAFE, table=tb, customer=c)
+
+
+@app.get("/logout-customer")
+def logout_customer():
+    session.pop("cid", None)
+    session.pop("table_id", None)
+    session.pop("table_token", None)
+    return redirect("/menu")
 
 
 @app.post("/join")
@@ -285,12 +315,65 @@ def place_order():
     return jsonify(id=o.id, number=o.number, total=float(o.total))
 
 
+@app.post("/api/order/<int:oid>/add")
+def add_to_order(oid):
+    import extras
+    o = db.session.get(Order, oid)
+    c = db.session.get(Customer, session.get("cid", 0))
+    if not o or not c or o.customer_id != c.id:
+        abort(404)
+    if o.status not in ("new", "accepted"):
+        return jsonify(error="Kitchen has already started — place a new order."), 409
+
+    data = request.get_json(force=True)
+    try:
+        new_lines, _, _ = extras.build_lines(data.get("items", []))
+    except ValueError as e:
+        return jsonify(error=str(e)), 409
+
+    for line in new_lines:
+        db.session.add(OrderItem(order_id=o.id, name=line.name,
+                                 price=line.price, qty=line.qty))
+
+    db.session.flush()
+    all_items = OrderItem.query.filter_by(order_id=o.id).all()
+    o.subtotal = float(sum(i.price * i.qty for i in all_items))
+    promo, disc = extras.best_promo(float(o.subtotal), {})
+    o.discount = min(disc, float(o.subtotal))
+    o.total = float(o.subtotal) - float(o.discount)
+    o.promo_name = promo
+
+    db.session.commit()
+    return jsonify(ok=True, total=float(o.total), number=o.number)
+
+
 @app.get("/api/order/<int:oid>")
 def order_status(oid):
     o = db.session.get(Order, oid)
     if not o or o.customer_id != session.get("cid"):
         abort(404)
     return jsonify(status=o.status, message=MSG[o.status])
+
+
+@app.get("/api/my-orders")
+def my_orders():
+    c = db.session.get(Customer, session.get("cid", 0))
+    tb = db.session.get(Table, session.get("table_id", 0))
+    if not c or not tb:
+        return jsonify(orders=[])
+    rows = Order.query.filter(
+        Order.customer_id == c.id,
+        Order.table_id == tb.id,
+    ).order_by(Order.id.desc()).limit(10).all()
+    return jsonify(orders=[{
+        "id": o.id,
+        "number": o.number,
+        "status": o.status,
+        "paid": o.payment_status == "paid",
+        "total": float(o.total),
+        "items": [{"name": i.name, "qty": i.qty, "price": float(i.price)} for i in o.items],
+        "created": o.created.strftime("%I:%M %p"),
+    } for o in rows])
 
 
 def need(*roles):
