@@ -1,28 +1,215 @@
 <!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Admin</title>
-<style>body{font-family:system-ui;margin:0;background:#f4efe9}header{background:#8b5a2b;color:#fff;padding:12px;display:flex;gap:14px;flex-wrap:wrap}
-header a{color:#fff;cursor:pointer}section{display:none;padding:14px}section.on{display:block}.o{background:#fff;border-radius:12px;padding:12px;margin:8px 0;border-left:6px solid #c33}
-.s{display:flex;gap:10px}.s div{background:#fff;padding:12px;border-radius:12px;flex:1}input,select{padding:6px;margin:2px}table{background:#fff;width:100%}</style></head><body>{% include '_csrf.html' %}
-<header><b>{{cafe}}</b><a onclick="go('orders')">Orders</a>{% if role!='staff' %}<a onclick="go('menu')">Menu</a><a onclick="go('tables')">Tables</a><a onclick="go('customers')">Customers</a><a onclick="go('loyalty')">Loyalty</a>{% endif %}{% if role!='staff' %}<a href=/admin/tables>Table status</a><a href=/admin/promos>Promos</a><a href=/admin/reports>Reports</a><a href=/admin/audit>Audit</a>{% endif %}<a href=/admin/logout>Logout</a></header>
-<section id=orders class=on><div class=s><div>Today's sales<h2>Rs. {{'%.0f'|format(stats.sales)}}</h2></div><div>Orders<h2>{{stats.orders}}</h2></div><div>Pending<h2>{{stats.pending}}</h2></div>
-<div>Print failures<h2>{{failed}}</h2></div></div><input id=q placeholder="Search name / phone" oninput=poll()><div id=ol></div></section>
+<style>
+:root{--brown:#8b5a2b;--brown-d:#6d4620;--cream:#f9f3e8;--border:#ecdfc9;--text:#2b2118}
+*{box-sizing:border-box}
+body{font-family:system-ui;margin:0;background:#f4efe9;color:var(--text)}
+header{background:var(--brown);color:#fff;padding:12px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;box-shadow:0 2px 6px #0002}
+header b{font-size:16px;margin-right:8px}
+header a{color:#fff;cursor:pointer;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:14px}
+header a:hover{background:#00000022}
+header a.primary{background:#00000033}
+section{display:none;padding:14px;max-width:1200px;margin:auto}
+section.on{display:block}
+.o{background:#fff;border-radius:10px;padding:12px;margin:8px 0;border-left:6px solid #c33;box-shadow:0 1px 3px #0001}
+.s{display:flex;gap:12px;flex-wrap:wrap}
+.s div{background:#fff;padding:14px 16px;border-radius:10px;flex:1;min-width:160px;box-shadow:0 1px 3px #0001}
+.s h2{margin:4px 0 0;color:var(--brown);font-size:22px}
+.s .label{color:#8b7355;font-size:13px;font-weight:500}
+.s .sub{color:#aaa;font-size:11px;margin-top:2px}
+input,select{padding:8px 10px;margin:3px 2px;border:1px solid #d8c9b3;border-radius:6px;font-size:14px;background:#fff}
+input:focus,select:focus{outline:none;border-color:var(--brown)}
+button{background:var(--brown);color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:14px}
+button:hover{background:var(--brown-d)}
+button.sec{background:#e8dcc8;color:#5b3d1a}
+button.sec:hover{background:#dcc9a8}
+button.danger{background:#c0392b}
+button.danger:hover{background:#962d22}
+table{background:#fff;width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px #0001;margin-top:8px}
+th{background:var(--cream);text-align:left;padding:10px 12px;color:#5b3d1a;font-weight:600;border-bottom:1px solid var(--border);font-size:13px;text-transform:uppercase;letter-spacing:.03em}
+td{padding:10px 12px;border-bottom:1px solid #f3ebdc;font-size:14px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr:hover{background:#fdf9f2}
+.menu-cat{background:var(--cream);font-weight:700;color:#5b3d1a;padding:8px 12px;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
+.pill{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600}
+.pill.avail{background:#d4edda;color:#1a6b1a}
+.pill.sold{background:#f8d7da;color:#8b1a1a}
+.pill.feat{background:#fde8c6;color:#8b5a2b}
+.menu-actions{display:flex;gap:6px;flex-wrap:wrap}
+.menu-actions form{display:inline}
+/* Order card status dropdown — fix for last options being hidden */
+.o{overflow:visible !important;position:relative;z-index:1}
+.o select{position:relative;z-index:2}
+</style></head>
+<body>{% include '_csrf.html' %}
+<header>
+  <b>{{cafe}} Admin</b>
+  <a onclick="go('orders')">Orders</a>
+  {% if role!='staff' %}
+    <a onclick="go('menu')">Menu</a>
+    <a onclick="go('tables')">Tables</a>
+    <a onclick="go('customers')">Customers</a>
+    <a onclick="go('loyalty')">Loyalty</a>
+    <a href="/admin/tables">Table status</a>
+    <a href="/admin/customers">Customer list</a>
+    <a href="/admin/promos">Promos</a>
+    <a href="/admin/reports">Reports</a>
+    <a href="/admin/pay-qr">Pay QR</a>
+    {% if role=='superadmin' %}<a href="/admin/audit">Audit</a>{% endif %}
+  {% endif %}
+  <a href=/admin/logout style="margin-left:auto">Logout</a>
+</header>
+
+<section id=orders class=on>
+  <div class=s>
+    <div><div class="label">Today's sales</div><h2>Rs. {{'%.0f'|format(stats.sales)}}</h2></div>
+    <div><div class="label">Total orders today</div><h2>{{stats.orders}}</h2></div>
+    <div><div class="label">Pending orders</div><h2>{{stats.pending_orders}}</h2><div class="sub">new / accepted / preparing</div></div>
+    <div><div class="label">Pending payments</div><h2>{{stats.pending_payments}}</h2><div class="sub">unpaid bills</div></div>
+    <div><div class="label">Print failures</div><h2>{{failed}}</h2></div>
+  </div>
+  <input id=q placeholder="Search name / phone" oninput=poll() style="width:260px">
+  <div id=ol></div>
+</section>
+
 {% if role!='staff' %}
-<section id=menu><form method=post action=/admin/item enctype=multipart/form-data><input name=category placeholder=Category required><input name=name placeholder=Name required><input name=price placeholder=Price required>
-<input name=image_url placeholder="Image URL"><input type=file name=image accept="image/*"><input name=description placeholder=Description><label><input type=checkbox name=veg checked>Veg</label><button>Add item</button></form>
-<table>{% for i in items %}<tr><td>{{i.name}}</td><td>Rs. {{i.price}}</td><td><a href=/admin/item/{{i.id}}/options>Variants/Add-ons</a></td><td><form method=post action=/admin/item/{{i.id}}/toggle><button>{{'Available → mark sold out' if i.available else 'Sold out → make available'}}</button></form></td></tr>{% endfor %}</table></section>
-<section id=tables><form method=post action=/admin/table><input name=name placeholder="Table name/number" required><button>Add table</button></form> <a href=/admin/qr-sheet target=_blank>🖨 Printable QR sheet</a>
-<table>{% for t in tables %}<tr><td>Table {{t.name}}</td><td><img src=/admin/qr/{{t.id}}.png width=90></td><td><a href=/admin/qr/{{t.id}}.png download>Download</a>
-<form method=post action=/admin/table/{{t.id}}/regen style=display:inline><button>Regenerate</button></form></td></tr>{% endfor %}</table></section>
-<section id=customers><table>{% for c in customers %}<tr><td><a href=/admin/customer/{{c.id}}>{{c.name}}</a></td><td>{{c.phone}}</td><td>{{c.created.strftime('%d %b %Y')}}</td></tr>{% endfor %}</table></section>
-<section id=loyalty><form method=post action=/admin/loyalty>{% for k,v in cfg.items() %}<p>{{k}} <input name={{k}} value="{{'%g'|format(v)}}"></p>{% endfor %}<button>Save</button></form></section>{% endif %}
+<section id=menu>
+  <h2 style="margin:0 0 12px;color:var(--brown)">Add new item</h2>
+  <form method=post action=/admin/item enctype=multipart/form-data style="background:#fff;padding:14px;border-radius:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Category
+      <input name=category placeholder="Coffee" required style="min-width:140px">
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Name
+      <input name=name placeholder="Item name" required style="min-width:180px">
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Price
+      <input name=price placeholder="200" type=number required style="width:100px">
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Image URL
+      <input name=image_url placeholder="https://..." style="min-width:200px">
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Or upload
+      <input type=file name=image accept="image/*" style="font-size:12px">
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Description
+      <input name=description placeholder="Short description" style="min-width:220px">
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;padding:6px 0"><input type=checkbox name=veg checked> Veg</label>
+    <button>+ Add item</button>
+  </form>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
+    <h2 style="margin:0;color:var(--brown)">Menu ({{ items|length }} items)</h2>
+    <input id="menu-filter" placeholder="Filter by name…" oninput="filterMenu()" style="width:220px">
+  </div>
+
+  <table id="menu-table">
+    <thead><tr>
+      <th style="width:35%">Item</th>
+      <th style="width:12%">Price</th>
+      <th style="width:10%">Type</th>
+      <th style="width:13%">Status</th>
+      <th style="width:30%">Actions</th>
+    </tr></thead>
+    <tbody>
+      {% set current_cat = namespace(name='') %}
+      {% for i in items %}
+        {% if i.category.name != current_cat.name %}
+          {% set current_cat.name = i.category.name %}
+          <tr class="menu-cat-row"><td colspan="5" class="menu-cat">{{ i.category.name }}</td></tr>
+        {% endif %}
+        <tr data-name="{{ i.name|lower }}">
+          <td>
+            <strong>{{ i.name }}</strong>
+            {% if i.featured %}<span class="pill feat">★</span>{% endif %}
+            {% if i.description %}<br><small style="color:#888">{{ i.description }}</small>{% endif %}
+          </td>
+          <td><b>Rs. {{ '%.0f'|format(i.price) }}</b></td>
+          <td>{% if i.veg %}<span style="color:#1a6b1a">● Veg</span>{% else %}<span style="color:#8b1a1a">● Non-veg</span>{% endif %}</td>
+          <td>
+            {% if i.available %}
+              <span class="pill avail">Available</span>
+            {% else %}
+              <span class="pill sold">Sold out</span>
+            {% endif %}
+          </td>
+          <td class="menu-actions">
+            <a href=/admin/item/{{i.id}}/options><button class=sec type=button>Options</button></a>
+            <form method=post action=/admin/item/{{i.id}}/toggle>
+              <button class=sec type=submit>{{ 'Mark sold out' if i.available else 'Mark available' }}</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section id=tables>
+  <form method=post action=/admin/table><input name=name placeholder="Table name/number" required><button>Add table</button></form>
+  <a href=/admin/qr-sheet target=_blank><button class=sec type=button>🖨 Printable QR sheet</button></a>
+  <table>{% for t in tables %}<tr><td>Table {{t.name}}</td><td><img src=/admin/qr/{{t.id}}.png width=90></td><td><a href=/admin/qr/{{t.id}}.png download>Download</a>
+  <form method=post action=/admin/table/{{t.id}}/regen style=display:inline><button class=sec>Regenerate</button></form></td></tr>{% endfor %}</table>
+</section>
+
+<section id=customers>
+  <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+    <h2 style="margin:0;color:var(--brown)">Quick customer list</h2>
+    <a href="/admin/customers"><button class=sec type=button>Full customer manager →</button></a>
+  </div>
+  <table>
+    <thead><tr><th>Name</th><th>Phone</th><th>Joined</th></tr></thead>
+    {% for c in customers %}<tr><td><a href=/admin/customer/{{c.id}}>{{c.name}}</a></td><td>{{c.phone}}</td><td>{{c.created.strftime('%d %b %Y')}}</td></tr>{% endfor %}
+  </table>
+</section>
+
+<section id=loyalty>
+  <form method=post action=/admin/loyalty>
+    {% for k,v in cfg.items() %}
+      <p><label style="display:inline-block;width:200px;color:#666">{{k}}</label> <input name={{k}} value="{{'%g'|format(v)}}" type=number></p>
+    {% endfor %}
+    <button>Save</button>
+  </form>
+</section>
+{% endif %}
+
 <script>
-const go=n=>{document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id==n))};if(location.hash)go(location.hash.slice(1));
-const ST={{statuses|tojson}};let last=0;
-async function poll(){const d=await(await fetch('/admin/api/orders?q='+encodeURIComponent(document.getElementById('q').value))).json();
-if(d.length&&d[0].id>last&&last){try{new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=').play()}catch(e){}}last=d.length?d[0].id:last;
-document.getElementById('ol').innerHTML=d.map(o=>`<div class=o><b>#${o.number} · Table ${o.table}</b> · ${o.time}<br>${o.customer} · ${o.phone}<br>${o.items.join('<br>')}<br>
+const go=n=>{document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id==n))};
+if(location.hash)go(location.hash.slice(1));
+const ST={{statuses|tojson}};
+let last=0;
+async function poll(){
+  const d=await(await fetch('/admin/api/orders?q='+encodeURIComponent(document.getElementById('q').value))).json();
+  if(d.length&&d[0].id>last&&last){try{new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=').play()}catch(e){}}
+  last=d.length?d[0].id:last;
+  document.getElementById('ol').innerHTML=d.map(o=>`<div class=o><b>#${o.number} · Table ${o.table}</b> · ${o.time}<br>${o.customer} · ${o.phone}<br>${o.items.join('<br>')}<br>
 Discount Rs. ${o.discount} · <b>Total Rs. ${o.total}</b><br><select onchange="st(${o.id},this.value)">${ST.map(s=>`<option ${s==o.status?'selected':''}>${s}</option>`).join('')}</select>
-<button onclick="fetch('/admin/order/${o.id}/reprint',{method:'POST'})">Reprint</button> ${o.paid=='paid'?'💰 Paid':`<button onclick="pay(${o.id})">Mark paid</button>`}${o.promo?' 🏷 '+o.promo:''}</div>`).join('')}
-async function pay(id){await fetch(`/admin/order/${id}/pay`,{method:'POST'});poll()}
+<button class=sec onclick="fetch('/admin/order/${o.id}/reprint',{method:'POST'})">Reprint</button>
+${o.paid=='paid'?'💰 Paid':`<button onclick="pay(${o.id})">Mark paid</button>`}${o.promo?' 🏷 '+o.promo:''}</div>`).join('');
+}
+async function pay(id){
+  const r=await fetch(`/admin/order/${id}/pay`,{method:'POST'});
+  const d=await r.json();
+  if(d.rotated) alert('✅ Bill paid.\n\nTable QR has been rotated. Download the new QR from Tables.');
+  else alert('✅ Bill paid. Order marked as completed.');
+  poll();
+}
 async function st(id,s){await fetch(`/admin/order/${id}/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:s})})}
+function filterMenu(){
+  const q=document.getElementById('menu-filter').value.toLowerCase();
+  document.querySelectorAll('#menu-table tbody tr[data-name]').forEach(tr=>{
+    tr.style.display = tr.dataset.name.includes(q) ? '' : 'none';
+  });
+  const rows=[...document.querySelectorAll('#menu-table tbody tr')];
+  for(let i=0;i<rows.length;i++){
+    if(rows[i].classList.contains('menu-cat-row')){
+      let visible=false;
+      for(let j=i+1;j<rows.length;j++){
+        if(rows[j].classList.contains('menu-cat-row')) break;
+        if(rows[j].style.display!=='none'){visible=true;break;}
+      }
+      rows[i].style.display = visible ? '' : 'none';
+    }
+  }
+}
 poll();setInterval(poll,4000)
 </script></body></html>

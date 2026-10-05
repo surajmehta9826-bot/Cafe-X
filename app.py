@@ -68,6 +68,7 @@ class Customer(db.Model):
     name = db.Column(db.String(80))
     phone = db.Column(db.String(20), unique=True, index=True)
     disabled = db.Column(db.Boolean, default=False)
+    session_key = db.Column(db.String(32), default=lambda: secrets.token_urlsafe(8))
     created = db.Column(db.DateTime, default=now)
 
 
@@ -160,6 +161,21 @@ def loyalty(c):
     return {"completed": done, "required": req, "progress": done % req, "reward": done // req > used}
 
 
+def free_table_if_done(table_id):
+    """If no live orders remain on this table, mark it available and rotate its QR token."""
+    still_open = Order.query.filter(
+        Order.table_id == table_id,
+        Order.status.in_(["new", "accepted", "preparing", "ready", "served"]),
+    ).count()
+    if still_open == 0:
+        t = db.session.get(Table, table_id)
+        if t:
+            t.status = "available"
+            t.token = secrets.token_urlsafe(8)
+            return t
+    return None
+
+
 def ticket(o):
     w = 42
     L = ["=" * w, CAFE.center(w), f"ORDER #{o.number}".center(w), "=" * w,
@@ -201,7 +217,6 @@ def _bootstrap():
                 db.session.add(Setting(key=k, value=v))
         db.session.commit()
 
-        # Auto-seed full menu if DB is nearly empty
         if Item.query.count() < 10:
             try:
                 import seed_data
@@ -233,12 +248,9 @@ def menu():
         tb = Table.query.filter_by(token=t, active=True).first()
         if not tb:
             return "Invalid or inactive table QR code.", 404
-
-        # NEW: If scanning a different table (or rotated token),
-        # clear the customer so they must re-identify.
         if session.get("table_token") and session["table_token"] != tb.token:
             session.pop("cid", None)
-
+            session.pop("ckey", None)
         session["table_id"] = tb.id
         session["table_token"] = tb.token
 
@@ -247,12 +259,19 @@ def menu():
         return "Please scan the QR code on your table.", 400
 
     c = db.session.get(Customer, session.get("cid", 0))
+
+    if c and session.get("ckey") and c.session_key and session["ckey"] != c.session_key:
+        session.pop("cid", None)
+        session.pop("ckey", None)
+        c = None
+
     return render_template("menu.html", cafe=CAFE, table=tb, customer=c)
 
 
 @app.get("/logout-customer")
 def logout_customer():
     session.pop("cid", None)
+    session.pop("ckey", None)
     session.pop("table_id", None)
     session.pop("table_token", None)
     return redirect("/menu")
@@ -267,9 +286,12 @@ def join():
     c = Customer.query.filter_by(phone=phone).first() or Customer(name=name, phone=phone)
     if c.disabled:
         return "Account disabled.", 403
+    if not c.session_key:
+        c.session_key = secrets.token_urlsafe(8)
     db.session.add(c)
     db.session.commit()
     session["cid"] = c.id
+    session["ckey"] = c.session_key
     return redirect("/menu")
 
 
@@ -311,6 +333,7 @@ def place_order():
     db.session.flush()
     db.session.add(PrintJob(order_id=o.id))
     db.session.add(extras.Payment(order_id=o.id, method="cash", amount=o.total))
+    tb.status = "occupied"
     db.session.commit()
     return jsonify(id=o.id, number=o.number, total=float(o.total))
 
@@ -324,17 +347,14 @@ def add_to_order(oid):
         abort(404)
     if o.status not in ("new", "accepted"):
         return jsonify(error="Kitchen has already started — place a new order."), 409
-
     data = request.get_json(force=True)
     try:
         new_lines, _, _ = extras.build_lines(data.get("items", []))
     except ValueError as e:
         return jsonify(error=str(e)), 409
-
     for line in new_lines:
         db.session.add(OrderItem(order_id=o.id, name=line.name,
                                  price=line.price, qty=line.qty))
-
     db.session.flush()
     all_items = OrderItem.query.filter_by(order_id=o.id).all()
     o.subtotal = float(sum(i.price * i.qty for i in all_items))
@@ -342,7 +362,6 @@ def add_to_order(oid):
     o.discount = min(disc, float(o.subtotal))
     o.total = float(o.subtotal) - float(o.discount)
     o.promo_name = promo
-
     db.session.commit()
     return jsonify(ok=True, total=float(o.total), number=o.number)
 
@@ -416,13 +435,27 @@ def admin():
     stats = {
         "orders": today.count(),
         "sales": float(sum(o.total for o in today if o.status != "cancelled")),
-        "pending": today.filter(Order.status.in_(["new", "accepted", "preparing"])).count(),
+        "pending_orders": today.filter(
+            Order.status.in_(["new", "accepted", "preparing"])
+        ).count(),
+        "pending_payments": today.filter(
+            Order.payment_status == "unpaid",
+            Order.status != "cancelled",
+        ).count(),
     }
-    return render_template("admin.html", cafe=CAFE, role=session["role"], statuses=STATUSES,
-                           stats=stats, tables=Table.query.all(), cats=Category.query.all(),
-                           items=Item.query.all(), customers=Customer.query.all(),
-                           cfg={k: setting(k) for k in LOYALTY_DEFAULTS},
-                           failed=PrintJob.query.filter_by(status="failed").count())
+    return render_template(
+        "admin.html",
+        cafe=CAFE,
+        role=session["role"],
+        statuses=STATUSES,
+        stats=stats,
+        tables=Table.query.all(),
+        cats=Category.query.all(),
+        items=Item.query.all(),
+        customers=Customer.query.all(),
+        cfg={k: setting(k) for k in LOYALTY_DEFAULTS},
+        failed=PrintJob.query.filter_by(status="failed").count(),
+    )
 
 
 @app.get("/admin/api/orders")
@@ -447,7 +480,13 @@ def set_status(oid):
     s = request.json["status"]
     if s not in STATUSES:
         abort(400)
-    db.session.get(Order, oid).status = s
+
+    o = db.session.get(Order, oid)
+    o.status = s
+
+    if s in ("completed", "cancelled"):
+        free_table_if_done(o.table_id)
+
     db.session.commit()
     return jsonify(ok=True)
 
