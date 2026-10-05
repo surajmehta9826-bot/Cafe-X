@@ -343,7 +343,6 @@
     }
     .toast.info { background: #2b2118; }
 
-    /* Brief highlight on a card when a new order hits it */
     @keyframes flash-card {
       0% { background-color: #fde8e8; }
       50% { background-color: #fff7f7; }
@@ -490,7 +489,7 @@
     </table>
 
   {# ============================================================
-     TABLE OVERVIEW — with auto-refresh + new-order alert
+     TABLE OVERVIEW
   ============================================================ #}
   {% elif page == 'tables' %}
     <h2>Table overview</h2>
@@ -516,8 +515,7 @@
     </div>
 
     <div class="table-grid" id="table-grid">
-      {% for t, state, o in rows %}
-        {% set elapsed_min = ((now() - o.created).total_seconds() / 60)|int if o else 0 %}
+      {% for t, state, o, elapsed_min in rows %}
         <div class="table-card {{ state }}" data-state="{{ state }}" data-table-id="{{ t.id }}">
           <div class="card-header">
             <b>Table {{ t.name }}</b>
@@ -579,26 +577,16 @@
     <div id="toast-container"></div>
 
     <script>
-      // ============================================================
-      //  CONFIG
-      // ============================================================
       const REFRESH_INTERVAL_MS = 30000;
       const CSRF_TOKEN = '{{ csrf_token() }}';
 
-      // ============================================================
-      //  STATE
-      // ============================================================
       let currentFilter = 'all';
-      // Highest order ID seen on the server at page load
       let lastMaxOrderId = {{ (rows|map(attribute=2)|select('ne', None)|map(attribute='id')|list|max) if rows|map(attribute=2)|select('ne', None)|list else 0 }};
       let isFirstLoad = true;
       let refreshPaused = false;
       let audioUnlocked = false;
       let audioCtx = null;
 
-      // ============================================================
-      //  AUDIO
-      // ============================================================
       function playNewOrderBeep() {
         try {
           if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -614,7 +602,7 @@
             osc.start(t + i * 0.15);
             osc.stop(t + i * 0.15 + 0.35);
           });
-        } catch (e) { /* ignore */ }
+        } catch (e) {}
       }
 
       document.addEventListener('click', () => {
@@ -627,9 +615,6 @@
         }
       });
 
-      // ============================================================
-      //  HELPERS
-      // ============================================================
       function escapeHtml(str) {
         return String(str == null ? '' : str).replace(/[&<>"']/g, (c) => ({
           '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -649,9 +634,6 @@
         }, 5000);
       }
 
-      // ============================================================
-      //  FILTER TABS
-      // ============================================================
       function filterTables(state, btn) {
         currentFilter = state;
         document.querySelectorAll('.filter-tabs .tab').forEach(t => t.classList.remove('active'));
@@ -667,9 +649,6 @@
         document.getElementById('empty-filter-msg').style.display = visible === 0 ? 'block' : 'none';
       }
 
-      // ============================================================
-      //  RENDER
-      // ============================================================
       const stateLabels = {
         free: '🟢 Free', occupied: '🔴 Occupied', locked: '🟡 Locked',
         reserved: '🔵 Reserved', cleaning: '🟠 Cleaning', disabled: '⚪ Disabled'
@@ -678,7 +657,6 @@
       function renderTables(payload) {
         const { counts, rows, server_time } = payload;
 
-        // Summary counters
         document.getElementById('table-summary').innerHTML = `
           <div class="summary-stat free"><span class="num">${counts.free}</span><span class="lbl">🟢 Free</span></div>
           <div class="summary-stat occupied"><span class="num">${counts.occupied}</span><span class="lbl">🔴 Occupied</span></div>
@@ -686,7 +664,6 @@
           <div class="summary-stat disabled"><span class="num">${counts.disabled}</span><span class="lbl">⚪ Disabled</span></div>
         `;
 
-        // Tab labels
         document.querySelectorAll('.filter-tabs .tab').forEach(tab => {
           const f = tab.dataset.filter;
           if (f === 'all') tab.textContent = `All (${rows.length})`;
@@ -695,10 +672,8 @@
           else if (f === 'locked') tab.textContent = `Locked (${counts.locked})`;
         });
 
-        // Server time
         document.getElementById('server-time').textContent = '🕐 ' + server_time;
 
-        // Grid
         const grid = document.getElementById('table-grid');
         const cards = rows.map(r => {
           const { id, name, state, order, locked_to_customer_id } = r;
@@ -751,14 +726,9 @@
         }).join('');
 
         grid.innerHTML = cards || '<div class="card" style="grid-column: 1/-1">No tables configured.</div>';
-
-        // Reapply filter
         filterTables(currentFilter, document.querySelector(`.tab[data-filter="${currentFilter}"]`));
       }
 
-      // ============================================================
-      //  REFRESH
-      // ============================================================
       async function refreshTables() {
         if (refreshPaused) return;
         try {
@@ -766,7 +736,6 @@
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const data = await res.json();
 
-          // Detect new orders
           if (!isFirstLoad && data.max_order_id > lastMaxOrderId) {
             playNewOrderBeep();
             showToast('🔔 New order arrived!', 'alert');
@@ -778,21 +747,16 @@
           lastMaxOrderId = Math.max(lastMaxOrderId, data.max_order_id);
 
           renderTables(data);
-
           document.getElementById('refresh-status').textContent =
             '🔄 Auto-refresh ON · last: ' + new Date().toLocaleTimeString();
           isFirstLoad = false;
         } catch (e) {
-          document.getElementById('refresh-status').textContent =
-            '⚠ Refresh failed — retrying…';
+          document.getElementById('refresh-status').textContent = '⚠ Refresh failed — retrying…';
         }
       }
 
-      function refreshNow() {
-        refreshTables();
-      }
+      function refreshNow() { refreshTables(); }
 
-      // Pause when tab hidden; refresh immediately on return
       document.addEventListener('visibilitychange', () => {
         refreshPaused = document.hidden;
         if (!document.hidden) refreshTables();

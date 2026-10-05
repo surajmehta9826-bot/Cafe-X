@@ -64,7 +64,10 @@ def _ctx():
     def csrf_token():
         session.setdefault("csrf", secrets.token_urlsafe(24))
         return session["csrf"]
-    return {"csrf_token": csrf_token}
+    return {
+        "csrf_token": csrf_token,
+        "now": now,        # ← register now() for use in Jinja templates
+    }
 
 
 _hits = {}
@@ -324,7 +327,8 @@ def tables_status():
             state = "free"
 
         counts[state] = counts.get(state, 0) + 1
-        rows.append((t, state, cur))
+        elapsed_min = int((now() - cur.created).total_seconds() / 60) if cur else 0
+        rows.append((t, state, cur, elapsed_min))       # 4-item tuple
 
     return page("tables", rows=rows, counts=counts)
 
