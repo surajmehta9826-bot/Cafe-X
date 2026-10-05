@@ -3,35 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
-  <title>{{ cafe }}</title>
+  <title>{{ cafe }} — Admin</title>
   <style>
+    /* ============================================================
+       DESIGN TOKENS
+    ============================================================ */
     :root {
       --brown: #8b5a2b;
       --brown-d: #6d4620;
       --cream: #f9f3e8;
       --border: #ecdfc9;
       --text: #2b2118;
+      --muted: #888;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.10);
     }
 
     * { box-sizing: border-box; }
 
+    /* ============================================================
+       BACKGROUND — warm gradient with subtle radial highlights
+    ============================================================ */
     body {
-      font-family: system-ui;
+      font-family: system-ui, -apple-system, sans-serif;
       margin: 0;
-      background: #f4efe9;
       color: var(--text);
+      background-color: #f4efe9;
+      background-image:
+        radial-gradient(circle at 15% 15%, #fdf6ec 0%, transparent 35%),
+        radial-gradient(circle at 85% 75%, #f9efe0 0%, transparent 40%),
+        linear-gradient(135deg, #f4efe9 0%, #f7f1e7 50%, #f0e6d5 100%);
+      background-attachment: fixed;
+      background-size: cover;
+      min-height: 100vh;
     }
 
-    /* ---------- Header / Navbar ---------- */
+    /* ============================================================
+       HEADER / NAVBAR
+    ============================================================ */
     header {
-      background: var(--brown);
+      background: linear-gradient(90deg, var(--brown-d) 0%, var(--brown) 100%);
       color: #fff;
       padding: 12px 16px;
       display: flex;
       gap: 14px;
       flex-wrap: wrap;
       align-items: center;
-      box-shadow: 0 2px 6px #0002;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
     header b { font-size: 16px; margin-right: 8px; }
     header a {
@@ -40,43 +61,51 @@
       padding: 5px 10px;
       border-radius: 6px;
       font-size: 14px;
+      transition: background 0.15s ease;
     }
-    header a:hover { background: #00000022; }
-    header a.active { background: #6d4620; }
+    header a:hover { background: rgba(0, 0, 0, 0.18); }
+    header a.active {
+      background: var(--brown-d);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+    }
 
-    /* ---------- Layout ---------- */
-    main { padding: 14px; max-width: 1200px; margin: auto; }
+    /* ============================================================
+       LAYOUT
+    ============================================================ */
+    main { padding: 16px; max-width: 1200px; margin: auto; }
     .card {
       background: #fff;
       border-radius: 12px;
-      padding: 14px;
+      padding: 16px;
       margin: 8px 0;
-      box-shadow: 0 1px 3px #0001;
+      box-shadow: var(--shadow-sm);
     }
 
-    /* ---------- Tables ---------- */
+    /* ============================================================
+       TABLES
+    ============================================================ */
     table {
       background: #fff;
       width: 100%;
       border-collapse: collapse;
-      border-radius: 10px;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 1px 3px #0001;
+      box-shadow: var(--shadow-sm);
       margin-top: 8px;
     }
     th {
       background: var(--cream);
       text-align: left;
-      padding: 10px 12px;
+      padding: 12px 14px;
       color: #5b3d1a;
       font-weight: 600;
       border-bottom: 1px solid var(--border);
-      font-size: 13px;
+      font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: .03em;
+      letter-spacing: 0.05em;
     }
     td {
-      padding: 10px 12px;
+      padding: 12px 14px;
       border-bottom: 1px solid #f3ebdc;
       font-size: 14px;
       vertical-align: middle;
@@ -84,7 +113,9 @@
     tr:last-child td { border-bottom: 0; }
     tr:hover { background: #fdf9f2; }
 
-    /* ---------- Forms ---------- */
+    /* ============================================================
+       FORMS
+    ============================================================ */
     input, select {
       padding: 8px 10px;
       margin: 3px 2px;
@@ -92,10 +123,17 @@
       border-radius: 6px;
       font-size: 14px;
       background: #fff;
+      transition: border-color 0.15s ease;
     }
-    input:focus, select:focus { outline: none; border-color: var(--brown); }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--brown);
+      box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.12);
+    }
 
-    /* ---------- Buttons ---------- */
+    /* ============================================================
+       BUTTONS
+    ============================================================ */
     button {
       background: var(--brown);
       color: #fff;
@@ -104,32 +142,101 @@
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
+      transition: background 0.15s ease, transform 0.05s ease;
     }
     button:hover { background: var(--brown-d); }
+    button:active { transform: scale(0.98); }
     button.sec { background: #e8dcc8; color: #5b3d1a; }
     button.sec:hover { background: #dcc9a8; }
     button.danger { background: #c0392b; }
     button.danger:hover { background: #962d22; }
-    button:disabled {
-      opacity: .4;
-      cursor: not-allowed;
-    }
-    button:disabled:hover { background: inherit; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* ---------- Status pills ---------- */
+    /* ============================================================
+       PILLS
+    ============================================================ */
     .pill {
       padding: 3px 10px;
       border-radius: 99px;
       font-size: 12px;
       font-weight: 600;
+      display: inline-block;
     }
     .pill.avail { background: #d4edda; color: #1a6b1a; }
     .pill.sold { background: #f8d7da; color: #8b1a1a; }
-    .pill.feat { background: #fde8c6; color: #8b5a2b; }
+    .pill.feat { background: #fde8c6; color: var(--brown); }
 
     /* ============================================================
-       TABLE OVERVIEW
-       ============================================================ */
+       CUSTOMER LIST — avatars
+    ============================================================ */
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .avatar.a0 { background: #e74c3c; }
+    .avatar.a1 { background: #e67e22; }
+    .avatar.a2 { background: #f39c12; }
+    .avatar.a3 { background: #16a085; }
+    .avatar.a4 { background: #3498db; }
+    .avatar.a5 { background: #9b59b6; }
+    .avatar.a6 { background: #34495e; }
+    .avatar.a7 { background: #c0392b; }
+
+    .cust-name {
+      font-weight: 600;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .cust-name:hover { color: var(--brown); }
+
+    .cust-phone {
+      color: #666;
+      font-size: 13px;
+      font-family: monospace;
+    }
+
+    .stat-badge {
+      background: #f4efe9;
+      color: #5b3d1a;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .stat-badge.zero { opacity: 0.4; }
+
+    .action-icons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn-icon {
+      padding: 6px 10px;
+      font-size: 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 0;
+    }
+    .btn-icon.warn { background: #fef8dc; color: #a58500; }
+    .btn-icon.warn:hover { background: #f0e0a0; }
+    .btn-icon.dark { background: #e8dcc8; color: #5b3d1a; }
+    .btn-icon.dark:hover { background: #dcc9a8; }
+    .btn-icon.red { background: #fdeceb; color: #c0392b; }
+    .btn-icon.red:hover { background: #f4b8b8; }
+
+    /* ============================================================
+       TABLE OVERVIEW GRID
+    ============================================================ */
     .table-summary {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -141,23 +248,23 @@
       border-radius: 12px;
       padding: 14px;
       text-align: center;
-      box-shadow: 0 1px 3px #0001;
+      box-shadow: var(--shadow-sm);
       border-left: 4px solid #ccc;
     }
-    .summary-stat.free     { border-left-color: #2ecc71; }
+    .summary-stat.free { border-left-color: #2ecc71; }
     .summary-stat.occupied { border-left-color: #e74c3c; }
-    .summary-stat.locked   { border-left-color: #f1c40f; }
+    .summary-stat.locked { border-left-color: #f1c40f; }
     .summary-stat.disabled { border-left-color: #999; }
     .summary-stat .num {
       display: block;
       font-size: 26px;
       font-weight: 700;
-      color: #2b2118;
+      color: var(--text);
     }
     .summary-stat .lbl {
       display: block;
       font-size: 12px;
-      color: #888;
+      color: var(--muted);
       margin-top: 2px;
     }
 
@@ -170,18 +277,19 @@
     .filter-tabs .tab {
       background: #fff;
       color: #5b3d1a;
-      border: 1px solid #ecdfc9;
+      border: 1px solid var(--border);
       padding: 8px 16px;
       border-radius: 99px;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
+      transition: background 0.15s ease;
     }
-    .filter-tabs .tab:hover { background: #f9f3e8; }
+    .filter-tabs .tab:hover { background: var(--cream); }
     .filter-tabs .tab.active {
-      background: #8b5a2b;
+      background: var(--brown);
       color: #fff;
-      border-color: #8b5a2b;
+      border-color: var(--brown);
     }
 
     .table-grid {
@@ -198,23 +306,23 @@
       background: #fff;
       border-radius: 14px;
       padding: 12px;
-      box-shadow: 0 2px 8px #0001;
+      box-shadow: var(--shadow-md);
       border: 2px solid #eee;
       border-top: 6px solid #ccc;
       display: flex;
       flex-direction: column;
-      transition: box-shadow .15s ease, transform .1s ease;
+      transition: box-shadow 0.15s ease, transform 0.1s ease;
     }
     .table-card:hover {
-      box-shadow: 0 4px 14px #0002;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
       transform: translateY(-1px);
     }
-    .table-card.free     { border-top-color: #2ecc71; }
-    .table-card.occupied { border-top-color: #e74c3c; background: #fff7f7; }
-    .table-card.locked   { border-top-color: #f1c40f; background: #fffbf0; }
-    .table-card.reserved { border-top-color: #3498db; background: #f2f9ff; }
-    .table-card.cleaning { border-top-color: #e67e22; background: #fff8f1; }
-    .table-card.disabled { border-top-color: #999; background: #f5f5f5; opacity: .65; }
+    .table-card.free      { border-top-color: #2ecc71; }
+    .table-card.occupied  { border-top-color: #e74c3c; background: #fff7f7; }
+    .table-card.locked    { border-top-color: #f1c40f; background: #fffbf0; }
+    .table-card.reserved  { border-top-color: #3498db; background: #f2f9ff; }
+    .table-card.cleaning  { border-top-color: #e67e22; background: #fff8f1; }
+    .table-card.disabled  { border-top-color: #999; background: #f5f5f5; opacity: 0.65; }
 
     .card-header {
       display: flex;
@@ -223,7 +331,7 @@
       margin-bottom: 10px;
       gap: 4px;
     }
-    .card-header b { font-size: 15px; color: #2b2118; }
+    .card-header b { font-size: 15px; color: var(--text); }
 
     .state-pill {
       font-size: 11px;
@@ -234,12 +342,12 @@
       color: #333;
       white-space: nowrap;
     }
-    .state-pill.free     { background: #d4edda; color: #1a6b1a; }
-    .state-pill.occupied { background: #fdeceb; color: #c0392b; }
-    .state-pill.locked   { background: #fef8dc; color: #a58500; }
-    .state-pill.reserved { background: #e4f0fa; color: #0a63b0; }
-    .state-pill.cleaning { background: #fdeddd; color: #b95a14; }
-    .state-pill.disabled { background: #eee; color: #666; }
+    .state-pill.free      { background: #d4edda; color: #1a6b1a; }
+    .state-pill.occupied  { background: #fdeceb; color: #c0392b; }
+    .state-pill.locked    { background: #fef8dc; color: #a58500; }
+    .state-pill.reserved  { background: #e4f0fa; color: #0a63b0; }
+    .state-pill.cleaning  { background: #fdeddd; color: #b95a14; }
+    .state-pill.disabled  { background: #eee; color: #666; }
 
     .card-body {
       display: flex;
@@ -250,7 +358,7 @@
       width: 70px;
       height: 70px;
       border-radius: 8px;
-      background: #faf6ee;
+      background: var(--cream);
       padding: 4px;
       flex-shrink: 0;
     }
@@ -260,26 +368,17 @@
       line-height: 1.4;
       min-width: 0;
     }
-    .card-info .guest { font-size: 13px; color: #2b2118; }
+    .card-info .guest { font-size: 13px; color: var(--text); }
     .card-info .order-line { color: #666; }
     .card-info .dim { color: #999; }
     .card-info .elapsed { color: #5b3d1a; margin-top: 2px; }
     .card-info .elapsed.warn { color: #e67e22; font-weight: 600; }
     .card-info .elapsed.crit { color: #c0392b; font-weight: 700; }
 
-    .card-actions {
-      display: flex;
-      gap: 6px;
-      margin-top: auto;
-    }
+    .card-actions { display: flex; gap: 6px; margin-top: auto; }
     .card-actions a { flex: 1; text-decoration: none; }
-    .card-actions button {
-      width: 100%;
-      padding: 8px;
-      font-size: 13px;
-    }
+    .card-actions button { width: 100%; padding: 8px; font-size: 13px; }
 
-    /* Lock warning inside single table detail */
     .lock-warning {
       background: #fff6e0;
       border-left: 4px solid #c9965a;
@@ -292,7 +391,7 @@
 
     /* ============================================================
        REFRESH BAR
-       ============================================================ */
+    ============================================================ */
     .refresh-bar {
       display: flex;
       align-items: center;
@@ -302,22 +401,15 @@
       padding: 8px 12px;
       background: #fff;
       border-radius: 10px;
-      box-shadow: 0 1px 3px #0001;
+      box-shadow: var(--shadow-sm);
       font-size: 13px;
     }
-    .refresh-status {
-      color: #5b3d1a;
-      font-weight: 600;
-      flex: 1;
-    }
-    .server-time {
-      color: #888;
-      font-size: 12px;
-    }
+    .refresh-status { color: #5b3d1a; font-weight: 600; flex: 1; }
+    .server-time { color: var(--muted); font-size: 12px; }
 
     /* ============================================================
-       TOAST NOTIFICATIONS
-       ============================================================ */
+       TOAST
+    ============================================================ */
     #toast-container {
       position: fixed;
       top: 20px;
@@ -329,28 +421,27 @@
       pointer-events: none;
     }
     .toast {
-      background: #2b2118;
+      background: var(--text);
       color: #fff;
       padding: 12px 20px;
       border-radius: 10px;
       font-size: 14px;
       font-weight: 600;
-      box-shadow: 0 4px 16px #0004;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
       transform: translateX(120%);
-      transition: transform .25s ease;
+      transition: transform 0.25s ease;
       max-width: 320px;
       pointer-events: auto;
     }
     .toast.on { transform: translateX(0); }
-    .toast.alert {
-      background: linear-gradient(135deg, #c0392b, #e74c3c);
-      color: #fff;
-    }
-    .toast.info { background: #2b2118; }
+    .toast.alert { background: linear-gradient(135deg, #c0392b, #e74c3c); color: #fff; }
 
+    /* ============================================================
+       NEW-ORDER FLASH
+    ============================================================ */
     @keyframes flash-card {
-      0% { background-color: #fde8e8; }
-      50% { background-color: #fff7f7; }
+      0%   { background-color: #fde8e8; }
+      50%  { background-color: #fff7f7; }
       100% { background-color: #fff7f7; }
     }
     .table-card.flash { animation: flash-card 2s ease; }
@@ -360,18 +451,19 @@
 <body>
   {% include '_csrf.html' %}
 
+  <!-- ============================================================
+       HEADER
+  ============================================================ -->
   <header>
     <b>{{ cafe }} Admin</b>
     <a href="/admin">Orders</a>
     <a href="/admin#menu">Menu</a>
     <a href="/admin#tables">Tables</a>
-    <a href="/admin#customers">Customers</a>
+    <a href="/admin/customers"
+       class="{{ 'active' if page in ('customers', 'customer') else '' }}">Customers</a>
     <a href="/admin#loyalty">Loyalty</a>
-
     <a href="/admin/tables"
        class="{{ 'active' if page in ('tables', 'table') else '' }}">Table status</a>
-    <a href="/admin/customers"
-       class="{{ 'active' if page == 'customers' else '' }}">Customer list</a>
     <a href="/admin/promos"
        class="{{ 'active' if page == 'promos' else '' }}">Promos</a>
     <a href="/admin/reports"
@@ -380,14 +472,13 @@
        class="{{ 'active' if page == 'payqr' else '' }}">Pay QR</a>
     <a href="/admin/audit"
        class="{{ 'active' if page == 'audit' else '' }}">Audit</a>
-
-    <a href="/admin/logout" style="margin-left: auto">Logout</a>
+    <a href="/admin/logout" style="margin-left:auto">Logout</a>
   </header>
 
   <main>
 
   {# ============================================================
-     PROMOS
+     PAGE: PROMOS
   ============================================================ #}
   {% if page == 'promos' %}
     <h2>Discounts &amp; promotions</h2>
@@ -414,14 +505,24 @@
 
     <table>
       <thead>
-        <tr><th>Name</th><th>Type</th><th>Value</th><th>Min</th><th>Max</th><th>Dates</th><th>Status</th></tr>
+        <tr>
+          <th>Name</th><th>Type</th><th>Value</th><th>Min</th>
+          <th>Max</th><th>Dates</th><th>Status</th>
+        </tr>
       </thead>
       <tbody>
         {% for d in discounts %}
           <tr>
-            <td>{{ d.name }}</td><td>{{ d.kind }}</td><td>{{ d.value }}</td>
-            <td>{{ d.min_order }}</td><td>{{ d.max_discount or '—' }}</td>
-            <td>{{ d.start.strftime('%d %b') if d.start else '…' }} → {{ d.end.strftime('%d %b') if d.end else '…' }}</td>
+            <td>{{ d.name }}</td>
+            <td>{{ d.kind }}</td>
+            <td>{{ d.value }}</td>
+            <td>{{ d.min_order }}</td>
+            <td>{{ d.max_discount or '—' }}</td>
+            <td>
+              {{ d.start.strftime('%d %b') if d.start else '…' }}
+              →
+              {{ d.end.strftime('%d %b') if d.end else '…' }}
+            </td>
             <td>
               <form method="post" action="/admin/promos/{{ d.id }}/toggle">
                 <button class="sec">{{ 'Active ✓' if d.active else 'Inactive' }}</button>
@@ -433,11 +534,11 @@
     </table>
 
   {# ============================================================
-     REPORTS
+     PAGE: REPORTS
   ============================================================ #}
   {% elif page == 'reports' %}
     <h2>Reports</h2>
-    <div id="reports-cards" style="display: flex; gap: 8px; flex-wrap: wrap"></div>
+    <div id="reports-cards" style="display:flex; gap:8px; flex-wrap:wrap"></div>
     <div class="card"><canvas id="chart-sales" height="110"></canvas></div>
     <div class="card"><canvas id="chart-top" height="110"></canvas></div>
     <div class="card" id="reports-loyal"></div>
@@ -447,6 +548,7 @@
       fetch('/admin/api/reports').then((r) => r.json()).then((data) => {
         const card = (title, value) =>
           `<div class="card"><small>${title}</small><h3>${value}</h3></div>`;
+
         document.getElementById('reports-cards').innerHTML =
           card('7 days', 'Rs. ' + data.week) +
           card('This month', 'Rs. ' + data.month) +
@@ -458,16 +560,31 @@
 
         new Chart(document.getElementById('chart-sales'), {
           type: 'line',
-          data: { labels: data.labels, datasets: [{
-            label: 'Daily sales (Rs.)', data: data.sales, borderColor: '#8b5a2b'
-          }] }
+          data: {
+            labels: data.labels,
+            datasets: [{
+              label: 'Daily sales (Rs.)',
+              data: data.sales,
+              borderColor: '#8b5a2b',
+              backgroundColor: 'rgba(139,90,43,0.12)',
+              fill: true,
+              tension: 0.35
+            }]
+          }
         });
+
         new Chart(document.getElementById('chart-top'), {
           type: 'bar',
-          data: { labels: data.top.map((t) => t[0]), datasets: [{
-            label: 'Most ordered', data: data.top.map((t) => t[1]), backgroundColor: '#c9965a'
-          }] }
+          data: {
+            labels: data.top.map((t) => t[0]),
+            datasets: [{
+              label: 'Most ordered',
+              data: data.top.map((t) => t[1]),
+              backgroundColor: '#c9965a'
+            }]
+          }
         });
+
         document.getElementById('reports-loyal').innerHTML =
           '<b>Highest-spending customers</b><br>' +
           data.loyal.map((x) => x[0] + ' — Rs. ' + x[1]).join('<br>');
@@ -475,7 +592,7 @@
     </script>
 
   {# ============================================================
-     AUDIT
+     PAGE: AUDIT LOG
   ============================================================ #}
   {% elif page == 'audit' %}
     <h2>Admin activity log</h2>
@@ -494,7 +611,7 @@
     </table>
 
   {# ============================================================
-     TABLE OVERVIEW
+     PAGE: TABLE OVERVIEW
   ============================================================ #}
   {% elif page == 'tables' %}
     <h2>Table overview</h2>
@@ -506,17 +623,37 @@
     </div>
 
     <div class="table-summary" id="table-summary">
-      <div class="summary-stat free"><span class="num">{{ counts.free }}</span><span class="lbl">🟢 Free</span></div>
-      <div class="summary-stat occupied"><span class="num">{{ counts.occupied }}</span><span class="lbl">🔴 Occupied</span></div>
-      <div class="summary-stat locked"><span class="num">{{ counts.locked }}</span><span class="lbl">🟡 Locked</span></div>
-      <div class="summary-stat disabled"><span class="num">{{ counts.disabled }}</span><span class="lbl">⚪ Disabled</span></div>
+      <div class="summary-stat free">
+        <span class="num">{{ counts.free }}</span>
+        <span class="lbl">🟢 Free</span>
+      </div>
+      <div class="summary-stat occupied">
+        <span class="num">{{ counts.occupied }}</span>
+        <span class="lbl">🔴 Occupied</span>
+      </div>
+      <div class="summary-stat locked">
+        <span class="num">{{ counts.locked }}</span>
+        <span class="lbl">🟡 Locked</span>
+      </div>
+      <div class="summary-stat disabled">
+        <span class="num">{{ counts.disabled }}</span>
+        <span class="lbl">⚪ Disabled</span>
+      </div>
     </div>
 
     <div class="filter-tabs" id="filter-tabs">
-      <button class="tab active" data-filter="all" onclick="filterTables('all', this)">All ({{ rows|length }})</button>
-      <button class="tab" data-filter="free" onclick="filterTables('free', this)">Free ({{ counts.free }})</button>
-      <button class="tab" data-filter="occupied" onclick="filterTables('occupied', this)">Occupied ({{ counts.occupied }})</button>
-      <button class="tab" data-filter="locked" onclick="filterTables('locked', this)">Locked ({{ counts.locked }})</button>
+      <button class="tab active" data-filter="all" onclick="filterTables('all', this)">
+        All ({{ rows|length }})
+      </button>
+      <button class="tab" data-filter="free" onclick="filterTables('free', this)">
+        Free ({{ counts.free }})
+      </button>
+      <button class="tab" data-filter="occupied" onclick="filterTables('occupied', this)">
+        Occupied ({{ counts.occupied }})
+      </button>
+      <button class="tab" data-filter="locked" onclick="filterTables('locked', this)">
+        Locked ({{ counts.locked }})
+      </button>
     </div>
 
     <div class="table-grid" id="table-grid">
@@ -564,8 +701,8 @@
             <a href="/admin/table/{{ t.id }}"><button class="sec">View</button></a>
             {% if t.locked_to_customer_id or state == 'occupied' %}
               <form method="post" action="/admin/table/{{ t.id }}/unlock"
-                    style="display:inline;flex:1"
-                    onsubmit="return confirm('Force unlock Table {{ t.name }}?\n\nCurrent guest will need to scan again.')">
+                    style="display:inline; flex:1"
+                    onsubmit="return confirm('Force unlock Table {{ t.name }}?')">
                 <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                 <button class="danger" style="width:100%">🔓 Unlock</button>
               </form>
@@ -575,23 +712,32 @@
       {% endfor %}
     </div>
 
-    <div id="empty-filter-msg" style="display:none;text-align:center;padding:40px;color:#888">
+    <div id="empty-filter-msg" style="display:none; text-align:center; padding:40px; color:#888">
       No tables match this filter.
     </div>
 
     <div id="toast-container"></div>
 
     <script>
+      // ============================================================
+      //  CONFIG
+      // ============================================================
       const REFRESH_INTERVAL_MS = 30000;
       const CSRF_TOKEN = '{{ csrf_token() }}';
 
+      // ============================================================
+      //  STATE
+      // ============================================================
       let currentFilter = 'all';
-      let lastMaxOrderId = {{ (rows|map(attribute=2)|select('ne', None)|map(attribute='id')|list|max) if rows|map(attribute=2)|select('ne', None)|list else 0 }};
+      let lastMaxOrderId = {{ max_order_id }};
       let isFirstLoad = true;
       let refreshPaused = false;
       let audioUnlocked = false;
       let audioCtx = null;
 
+      // ============================================================
+      //  AUDIO — two-tone beep for new orders
+      // ============================================================
       function playNewOrderBeep() {
         try {
           if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -607,31 +753,37 @@
             osc.start(t + i * 0.15);
             osc.stop(t + i * 0.15 + 0.35);
           });
-        } catch (e) {}
+        } catch (e) { /* ignore */ }
       }
 
-      document.addEventListener('click', () => {
-        if (!audioUnlocked) {
+      ['click', 'touchstart', 'keydown'].forEach((evt) => {
+        document.addEventListener(evt, () => {
+          if (audioUnlocked) return;
           try {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
             audioUnlocked = true;
+            const s = document.getElementById('refresh-status');
+            if (s) s.textContent = '🔄 Auto-refresh ON · 🔊 sound ready';
           } catch (e) {}
-        }
+        }, { once: true, capture: true });
       });
 
+      // ============================================================
+      //  HELPERS
+      // ============================================================
       function escapeHtml(str) {
         return String(str == null ? '' : str).replace(/[&<>"']/g, (c) => ({
           '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         })[c]);
       }
 
-      function showToast(message, type) {
-        const container = document.getElementById('toast-container');
+      function showToast(msg, type) {
+        const c = document.getElementById('toast-container');
         const el = document.createElement('div');
         el.className = 'toast ' + (type || 'info');
-        el.textContent = message;
-        container.appendChild(el);
+        el.textContent = msg;
+        c.appendChild(el);
         requestAnimationFrame(() => el.classList.add('on'));
         setTimeout(() => {
           el.classList.remove('on');
@@ -639,14 +791,16 @@
         }, 5000);
       }
 
+      // ============================================================
+      //  FILTER TABS
+      // ============================================================
       function filterTables(state, btn) {
         currentFilter = state;
-        document.querySelectorAll('.filter-tabs .tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.filter-tabs .tab').forEach((t) => t.classList.remove('active'));
         if (btn) btn.classList.add('active');
 
-        const cards = document.querySelectorAll('#table-grid .table-card');
         let visible = 0;
-        cards.forEach(card => {
+        document.querySelectorAll('#table-grid .table-card').forEach((card) => {
           const match = (state === 'all') || (card.dataset.state === state);
           card.style.display = match ? '' : 'none';
           if (match) visible++;
@@ -654,14 +808,22 @@
         document.getElementById('empty-filter-msg').style.display = visible === 0 ? 'block' : 'none';
       }
 
+      // ============================================================
+      //  RENDER
+      // ============================================================
       const stateLabels = {
-        free: '🟢 Free', occupied: '🔴 Occupied', locked: '🟡 Locked',
-        reserved: '🔵 Reserved', cleaning: '🟠 Cleaning', disabled: '⚪ Disabled'
+        free: '🟢 Free',
+        occupied: '🔴 Occupied',
+        locked: '🟡 Locked',
+        reserved: '🔵 Reserved',
+        cleaning: '🟠 Cleaning',
+        disabled: '⚪ Disabled'
       };
 
       function renderTables(payload) {
         const { counts, rows, server_time } = payload;
 
+        // Summary counters
         document.getElementById('table-summary').innerHTML = `
           <div class="summary-stat free"><span class="num">${counts.free}</span><span class="lbl">🟢 Free</span></div>
           <div class="summary-stat occupied"><span class="num">${counts.occupied}</span><span class="lbl">🔴 Occupied</span></div>
@@ -669,7 +831,8 @@
           <div class="summary-stat disabled"><span class="num">${counts.disabled}</span><span class="lbl">⚪ Disabled</span></div>
         `;
 
-        document.querySelectorAll('.filter-tabs .tab').forEach(tab => {
+        // Filter tab labels
+        document.querySelectorAll('.filter-tabs .tab').forEach((tab) => {
           const f = tab.dataset.filter;
           if (f === 'all') tab.textContent = `All (${rows.length})`;
           else if (f === 'free') tab.textContent = `Free (${counts.free})`;
@@ -677,19 +840,20 @@
           else if (f === 'locked') tab.textContent = `Locked (${counts.locked})`;
         });
 
+        // Server time
         document.getElementById('server-time').textContent = '🕐 ' + server_time;
 
-        const grid = document.getElementById('table-grid');
-        const cards = rows.map(r => {
+        // Cards
+        const cards = rows.map((r) => {
           const { id, name, state, order, locked_to_customer_id } = r;
 
           let infoHtml = '';
           if (order) {
-            const elapsedClass = order.elapsed_min > 45 ? 'crit' : (order.elapsed_min > 20 ? 'warn' : '');
+            const ec = order.elapsed_min > 45 ? 'crit' : (order.elapsed_min > 20 ? 'warn' : '');
             infoHtml = `
               <div class="guest"><b>${escapeHtml(order.customer_name)}</b></div>
               <div class="order-line">#${order.number} · Rs. ${Math.round(order.total)}</div>
-              <div class="elapsed ${elapsedClass}">⏱ ${order.elapsed_min} min ago</div>
+              <div class="elapsed ${ec}">⏱ ${order.elapsed_min} min ago</div>
             `;
           } else if (locked_to_customer_id) {
             infoHtml = '<div class="dim">Locked to guest</div><div class="dim">No order yet</div>';
@@ -705,8 +869,8 @@
 
           const unlockHtml = (locked_to_customer_id || state === 'occupied')
             ? `<form method="post" action="/admin/table/${id}/unlock"
-                      style="display:inline;flex:1"
-                      onsubmit="return confirm('Force unlock Table ${escapeHtml(name)}?\\n\\nCurrent guest will need to scan again.')">
+                      style="display:inline; flex:1"
+                      onsubmit="return confirm('Force unlock Table ${escapeHtml(name)}?')">
                  <input type="hidden" name="csrf" value="${CSRF_TOKEN}">
                  <button class="danger" style="width:100%">🔓 Unlock</button>
                </form>`
@@ -730,10 +894,15 @@
           `;
         }).join('');
 
-        grid.innerHTML = cards || '<div class="card" style="grid-column: 1/-1">No tables configured.</div>';
+        document.getElementById('table-grid').innerHTML =
+          cards || '<div class="card" style="grid-column:1/-1">No tables configured.</div>';
+
         filterTables(currentFilter, document.querySelector(`.tab[data-filter="${currentFilter}"]`));
       }
 
+      // ============================================================
+      //  REFRESH
+      // ============================================================
       async function refreshTables() {
         if (refreshPaused) return;
         try {
@@ -741,17 +910,30 @@
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const data = await res.json();
 
-          if (!isFirstLoad && data.max_order_id > lastMaxOrderId) {
+          // Detect new order
+          const isNewOrder = !isFirstLoad && data.max_order_id > lastMaxOrderId;
+          if (isNewOrder) {
             playNewOrderBeep();
             showToast('🔔 New order arrived!', 'alert');
-            document.title = '🔔 New order — ' + (document.title.replace(/^🔔 /, ''));
+            document.title = '🔔 New order — ' + document.title.replace(/^🔔 /, '');
             setTimeout(() => {
               document.title = document.title.replace(/^🔔 /, '');
             }, 8000);
-          }
-          lastMaxOrderId = Math.max(lastMaxOrderId, data.max_order_id);
 
+            // Flash the newest card
+            const newestRow = data.rows.find((r) => r.order && r.order.id === data.max_order_id);
+            if (newestRow) {
+              const card = document.querySelector(`.table-card[data-table-id="${newestRow.id}"]`);
+              if (card) {
+                card.classList.add('flash');
+                setTimeout(() => card.classList.remove('flash'), 2200);
+              }
+            }
+          }
+
+          lastMaxOrderId = Math.max(lastMaxOrderId, data.max_order_id);
           renderTables(data);
+
           document.getElementById('refresh-status').textContent =
             '🔄 Auto-refresh ON · last: ' + new Date().toLocaleTimeString();
           isFirstLoad = false;
@@ -760,24 +942,26 @@
         }
       }
 
-      function refreshNow() { refreshTables(); }
+      function refreshNow() {
+        refreshTables();
+      }
 
+      // Pause when tab is hidden; refresh immediately on return
       document.addEventListener('visibilitychange', () => {
         refreshPaused = document.hidden;
         if (!document.hidden) refreshTables();
       });
 
+      refreshTables();
       setInterval(refreshTables, REFRESH_INTERVAL_MS);
     </script>
 
   {# ============================================================
-     SINGLE TABLE DETAIL — with Regenerate QR guarded
+     PAGE: SINGLE TABLE DETAIL
   ============================================================ #}
   {% elif page == 'table' %}
-    <h2>Table {{ t.name }}</h2>
-
-    {# Compute in-use state #}
     {% set in_use = t.locked_to_customer_id or t.status == 'occupied' %}
+    <h2>Table {{ t.name }}</h2>
 
     {% if in_use %}
       <div class="lock-warning">
@@ -789,7 +973,7 @@
       </div>
     {% endif %}
 
-    <form method="post" action="/admin/table/{{ t.id }}/status" style="display: inline-block">
+    <form method="post" action="/admin/table/{{ t.id }}/status" style="display:inline-block">
       <select name="status">
         {% for s in ['available', 'reserved', 'cleaning', 'disabled'] %}
           <option {{ 'selected' if s == t.status }}>{{ s }}</option>
@@ -799,20 +983,17 @@
     </form>
 
     <form method="post" action="/admin/table/{{ t.id }}/unlock"
-          style="display: inline-block; margin-left: 8px"
-          onsubmit="return confirm('Force unlock this table?\n\nThe current customer will need to scan again.')">
+          style="display:inline-block; margin-left:8px"
+          onsubmit="return confirm('Force unlock this table?')">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
       <button class="danger" type="submit">🔓 Force unlock</button>
     </form>
 
     <form method="post" action="/admin/table/{{ t.id }}/regen"
-          style="display: inline-block; margin-left: 8px">
+          style="display:inline-block; margin-left:8px">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
       <button class="sec" type="submit"
-              {% if in_use %}
-                disabled
-                title="Table is in use — unlock first"
-              {% endif %}>
+              {% if in_use %}disabled title="Table is in use — unlock first"{% endif %}>
         🔄 Regenerate QR{% if in_use %} 🔒{% endif %}
       </button>
     </form>
@@ -821,26 +1002,32 @@
       <div class="card">
         #{{ o.number }} · {{ o.created.strftime('%d %b %H:%M') }} ·
         {{ o.customer.name }} · Rs. {{ o.total }} ·
-        <b>{{ o.status }}</b>{{ ' (current)' if o.status in live }}<br>
-        {% for i in o.items %}{{ i.qty }} × {{ i.name }}<br>{% endfor %}
+        <b>{{ o.status }}</b>{{ ' (current)' if o.status in live }}
+        <br>
+        {% for i in o.items %}
+          {{ i.qty }} × {{ i.name }}<br>
+        {% endfor %}
       </div>
     {% endfor %}
 
   {# ============================================================
-     CUSTOMER DETAIL
+     PAGE: CUSTOMER DETAIL
   ============================================================ #}
   {% elif page == 'customer' %}
     <h2>{{ c.name }} {{ '(disabled)' if c.disabled }}</h2>
     <p>
       {{ c.phone }} · joined {{ c.created.strftime('%d %b %Y') }}<br>
       Orders: {{ orders|length }} · Spent: Rs. {{ '%.0f'|format(spent) }} ·
-      Loyalty {{ loy.progress }}/{{ loy.required }} · Reward: {{ loy.reward }} · Redeemed: {{ redeemed }}
+      Loyalty {{ loy.progress }}/{{ loy.required }} · Reward: {{ loy.reward }} ·
+      Redeemed: {{ redeemed }}
     </p>
 
-    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0">
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin:8px 0">
       <form method="post" action="/admin/customer/{{ c.id }}/toggle">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-        <button class="sec" type="submit">{{ 'Enable' if c.disabled else 'Disable' }} account</button>
+        <button class="sec" type="submit">
+          {{ 'Enable' if c.disabled else 'Disable' }} account
+        </button>
       </form>
       <form method="post" action="/admin/customer/{{ c.id }}/force-logout"
             onsubmit="return confirm('Force logout on all devices?')">
@@ -875,29 +1062,37 @@
     <script>
       async function deleteCustomer(id, name, orderCount) {
         if (!confirm(`Delete "${name}" permanently?\n\nRemoves ${orderCount} order(s), payments, and loyalty.\n\nCANNOT be undone.`)) return;
-        if (!confirm('Absolutely sure? Click OK to confirm.')) return;
-        const res = await fetch(`/admin/customer/${id}/delete`, {
-          method: 'POST', headers: { 'X-CSRF': '{{ csrf_token() }}' }
+        if (!confirm('Absolutely sure?')) return;
+        const r = await fetch(`/admin/customer/${id}/delete`, {
+          method: 'POST',
+          headers: { 'X-CSRF': '{{ csrf_token() }}' }
         });
-        if (res.ok) { alert('Deleted.'); location.href = '/admin/customers'; }
-        else if (res.status === 403) { alert('Only superadmin can delete.'); }
-        else { alert('Delete failed: ' + res.status); }
+        if (r.ok) { alert('Deleted.'); location.href = '/admin/customers'; }
+        else if (r.status === 403) { alert('Only superadmin can delete.'); }
+        else { alert('Delete failed: ' + r.status); }
       }
     </script>
 
   {# ============================================================
-     ITEM OPTIONS
+     PAGE: ITEM OPTIONS
   ============================================================ #}
   {% elif page == 'options' %}
     <h2>{{ item.name }} — variants &amp; add-ons</h2>
+
     <form method="post" action="/admin/item/{{ item.id }}/variant" class="card">
-      Variant (e.g. Large, +50) <input name="name" required>
-      <input name="price" placeholder="+ price"><button>Add</button>
+      Variant (e.g. Large, +50)
+      <input name="name" required>
+      <input name="price" placeholder="+ price">
+      <button>Add</button>
     </form>
+
     <form method="post" action="/admin/item/{{ item.id }}/addon" class="card">
-      Add-on (e.g. Extra cheese) <input name="name" required>
-      <input name="price" placeholder="Price"><button>Add</button>
+      Add-on (e.g. Extra cheese)
+      <input name="name" required>
+      <input name="price" placeholder="Price">
+      <button>Add</button>
     </form>
+
     <table>
       <thead><tr><th>Type</th><th>Name</th><th>Price</th><th></th></tr></thead>
       <tbody>
@@ -921,68 +1116,75 @@
     </table>
 
   {# ============================================================
-     PAYMENT QR GENERATOR
+     PAGE: PAYMENT QR GENERATOR
   ============================================================ #}
   {% elif page == 'payqr' %}
     <h2>💰 Payment QR Generator</h2>
-    <p style="color: #666; max-width: 640px">Enter an amount and optional note. A QR is generated below.</p>
+    <p style="color:#666; max-width:640px">
+      Enter an amount and optional note. A QR is generated below.
+    </p>
 
-    <form onsubmit="generatePaymentQr(event)"
-          style="background: #fff; border-radius: 12px; padding: 16px; max-width: 520px; margin: 12px 0">
-      <label style="display: block; margin: 8px 0 4px; color: #555; font-size: .9rem">Amount (Rs.)</label>
-      <input id="qr-amount" type="number" min="1" step="1" value="500" required
-             style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem">
-      <label style="display: block; margin: 12px 0 4px; color: #555; font-size: .9rem">Note (optional)</label>
-      <input id="qr-note" type="text" placeholder="e.g. Table 3 bill" maxlength="80"
-             style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem">
-      <button style="background: #8b5a2b; color: #fff; border: 0; padding: 11px 20px; border-radius: 8px; font-size: 1rem; margin-top: 14px; cursor: pointer">
+    <form onsubmit="genPayQr(event)"
+          style="background:#fff; border-radius:12px; padding:16px; max-width:520px; margin:12px 0">
+      <label style="display:block; margin:8px 0 4px; color:#555; font-size:.9rem">
+        Amount (Rs.)
+      </label>
+      <input id="pq-amt" type="number" min="1" step="1" value="500" required
+             style="width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; font-size:1rem">
+
+      <label style="display:block; margin:12px 0 4px; color:#555; font-size:.9rem">
+        Note (optional)
+      </label>
+      <input id="pq-note" type="text" placeholder="e.g. Table 3 bill" maxlength="80"
+             style="width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; font-size:1rem">
+
+      <button style="background:#8b5a2b; color:#fff; border:0; padding:11px 20px; border-radius:8px; font-size:1rem; margin-top:14px; cursor:pointer">
         Generate QR
       </button>
     </form>
 
-    <div id="qr-output"
-         style="display: none; background: #fff; border-radius: 12px; padding: 20px; text-align: center; max-width: 360px">
-      <img id="qr-image" alt="Payment QR" style="width: 280px; height: 280px">
-      <div id="qr-caption" style="color: #555; margin-top: 8px"></div>
-      <a id="qr-download" download
-         style="display: inline-block; margin-top: 14px; background: #2c2c36; color: #fff; padding: 9px 16px; border-radius: 8px; text-decoration: none">
+    <div id="pq-out" style="display:none; background:#fff; border-radius:12px; padding:20px; text-align:center; max-width:360px">
+      <img id="pq-img" alt="QR" style="width:280px; height:280px">
+      <div id="pq-cap" style="color:#555; margin-top:8px"></div>
+      <a id="pq-dl" download
+         style="display:inline-block; margin-top:14px; background:#2c2c36; color:#fff; padding:9px 16px; border-radius:8px; text-decoration:none">
         Download PNG
       </a>
     </div>
 
     <script>
-      function generatePaymentQr(event) {
-        event.preventDefault();
-        const amount = parseInt(document.getElementById('qr-amount').value, 10);
-        const note = document.getElementById('qr-note').value.trim();
-        const url = `/admin/pay-qr/${amount}.png?note=${encodeURIComponent(note)}&_t=${Date.now()}`;
-        document.getElementById('qr-image').src = url;
-        document.getElementById('qr-download').href = url;
-        document.getElementById('qr-download').setAttribute('download', `pay-${amount}.png`);
-        document.getElementById('qr-caption').textContent = `Rs. ${amount}${note ? ' — ' + note : ''}`;
-        document.getElementById('qr-output').style.display = 'inline-block';
+      function genPayQr(e) {
+        e.preventDefault();
+        const amt = parseInt(document.getElementById('pq-amt').value, 10);
+        const note = document.getElementById('pq-note').value.trim();
+        const url = `/admin/pay-qr/${amt}.png?note=${encodeURIComponent(note)}&_t=${Date.now()}`;
+        document.getElementById('pq-img').src = url;
+        document.getElementById('pq-dl').href = url;
+        document.getElementById('pq-dl').setAttribute('download', `pay-${amt}.png`);
+        document.getElementById('pq-cap').textContent = `Rs. ${amt}${note ? ' — ' + note : ''}`;
+        document.getElementById('pq-out').style.display = 'inline-block';
       }
     </script>
 
   {# ============================================================
-     CUSTOMER LIST
+     PAGE: CUSTOMER LIST
   ============================================================ #}
   {% elif page == 'customers' %}
     <h2>👥 Customers</h2>
 
     {% if request.args.get('deleted') %}
-      <div class="card" style="background: #d4edda; color: #1a6b1a">
+      <div class="card" style="background:#d4edda; color:#1a6b1a">
         Deleted {{ request.args.get('deleted') }} customer(s).
       </div>
     {% endif %}
 
     <form method="get" class="card"
-          style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end">
-      <label style="display: flex; flex-direction: column; font-size: 12px; color: #666">
+          style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end">
+      <label style="display:flex; flex-direction:column; font-size:12px; color:#666">
         Search
-        <input name="q" value="{{ q }}" placeholder="Name or phone" style="min-width: 220px">
+        <input name="q" value="{{ q }}" placeholder="Name or phone" style="min-width:220px">
       </label>
-      <label style="display: flex; flex-direction: column; font-size: 12px; color: #666">
+      <label style="display:flex; flex-direction:column; font-size:12px; color:#666">
         Filter
         <select name="status">
           <option value="" {{ 'selected' if not status }}>All</option>
@@ -993,32 +1195,49 @@
         </select>
       </label>
       <button type="submit">Apply</button>
-      <a href="/admin/customers" style="text-decoration: none">
+      <a href="/admin/customers" style="text-decoration:none">
         <button type="button" class="sec">Reset</button>
       </a>
     </form>
 
-    <p style="color: #555; font-size: 14px; margin: 12px 0 0">
+    <p style="color:#555; font-size:14px; margin:12px 0 0">
       <b>Total:</b> {{ rows|length }} customer(s).
-      <span style="color: #999; font-size: 12px">Newest first.</span>
+      <span style="color:#999; font-size:12px">Newest first.</span>
     </p>
 
     <table>
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Phone</th><th>Orders</th>
-          <th>Spent</th><th>Last order</th><th>Status</th><th style="width: 260px">Actions</th>
+          <th style="width:36px"></th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Orders</th>
+          <th>Spent</th>
+          <th>Last order</th>
+          <th>Status</th>
+          <th style="width:280px">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for r in rows %}
+          {% set init = (r.name[0] if r.name else '?')|upper %}
+          {% set colorIdx = (r.id % 8) %}
           <tr>
-            <td>{{ r.id }}</td>
-            <td><a href="/admin/customer/{{ r.id }}"><strong>{{ r.name }}</strong></a></td>
-            <td>{{ r.phone }}</td>
-            <td>{{ r.orders }}</td>
-            <td>Rs. {{ '%.0f'|format(r.spent) }}</td>
-            <td>{% if r.last_order %}{{ r.last_order.strftime('%d %b %Y') }}{% else %}—{% endif %}</td>
+            <td><div class="avatar a{{ colorIdx }}">{{ init }}</div></td>
+            <td><a href="/admin/customer/{{ r.id }}" class="cust-name">{{ r.name }}</a></td>
+            <td>
+              <span class="cust-phone" style="cursor:pointer" title="Click to copy"
+                    onclick="copyPhone('{{ r.phone }}', this)">{{ r.phone }}</span>
+            </td>
+            <td><span class="stat-badge {{ 'zero' if r.orders == 0 else '' }}">{{ r.orders }}</span></td>
+            <td><span class="stat-badge {{ 'zero' if r.spent == 0 else '' }}">Rs. {{ '%.0f'|format(r.spent) }}</span></td>
+            <td>
+              {% if r.last_order %}
+                {{ r.last_order.strftime('%d %b %Y') }}
+              {% else %}
+                <span style="color:#bbb">—</span>
+              {% endif %}
+            </td>
             <td>
               {% if r.disabled %}
                 <span class="pill sold">Disabled</span>
@@ -1027,57 +1246,72 @@
               {% endif %}
             </td>
             <td>
-              <form method="post" action="/admin/customer/{{ r.id }}/toggle" style="display: inline">
-                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-                <button class="sec" type="submit">{{ 'Enable' if r.disabled else 'Disable' }}</button>
-              </form>
-              <form method="post" action="/admin/customer/{{ r.id }}/force-logout"
-                    style="display: inline"
-                    onsubmit="return confirm('Force logout {{ r.name|e }} from all devices?')">
-                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-                <button class="sec" type="submit">Force logout</button>
-              </form>
-              {% if session.role == 'superadmin' %}
-                <button class="danger" type="button"
-                        onclick="deleteCustomer({{ r.id }}, '{{ r.name|e }}', {{ r.orders }})">
-                  Delete
-                </button>
-              {% endif %}
+              <div class="action-icons">
+                <form method="post" action="/admin/customer/{{ r.id }}/toggle" style="display:inline">
+                  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                  <button class="btn-icon warn" type="submit">
+                    {{ 'Enable' if r.disabled else 'Disable' }}
+                  </button>
+                </form>
+                <form method="post" action="/admin/customer/{{ r.id }}/force-logout"
+                      style="display:inline"
+                      onsubmit="return confirm('Force logout {{ r.name|e }} from all devices?')">
+                  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                  <button class="btn-icon dark" type="submit">Logout</button>
+                </form>
+                {% if session.role == 'superadmin' %}
+                  <button class="btn-icon red" type="button"
+                          onclick="deleteCustomer({{ r.id }}, '{{ r.name|e }}', {{ r.orders }})"
+                          title="Delete permanently">🗑</button>
+                {% endif %}
+              </div>
             </td>
           </tr>
         {% else %}
-          <tr><td colspan="8" style="text-align: center; color: #888; padding: 20px">No customers match the filter.</td></tr>
+          <tr><td colspan="8" style="text-align:center; color:#888; padding:20px">
+            No customers match the filter.
+          </td></tr>
         {% endfor %}
       </tbody>
     </table>
 
-    <div class="card" style="margin-top: 16px">
+    <div class="card" style="margin-top:16px">
       <b>Bulk cleanup</b>
-      <p style="color: #666; font-size: 13px; margin: 6px 0">Delete customers with no orders in the last N days. Superadmin only.</p>
+      <p style="color:#666; font-size:13px; margin:6px 0">
+        Delete customers with no orders in the last N days. Superadmin only.
+      </p>
       {% if session.role == 'superadmin' %}
         <form method="post" action="/admin/customers/bulk-delete-inactive"
               onsubmit="return confirm('Delete all customers with no orders in the last N days? Cannot be undone.')">
           <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-          <input type="number" name="days" value="90" min="30" max="3650" style="width: 100px">
-          days
+          <input type="number" name="days" value="90" min="30" max="3650" style="width:100px"> days
           <button class="danger" type="submit">Bulk delete inactive</button>
         </form>
       {% else %}
-        <p style="color: #999"><em>Bulk delete requires superadmin.</em></p>
+        <p style="color:#999"><em>Bulk delete requires superadmin.</em></p>
       {% endif %}
     </div>
 
     <script>
+      function copyPhone(phone, el) {
+        navigator.clipboard.writeText(phone).then(() => {
+          const orig = el.textContent;
+          el.textContent = '✓ copied';
+          setTimeout(() => el.textContent = orig, 1200);
+        }).catch(() => {});
+      }
+
       async function deleteCustomer(id, name, orderCount) {
         if (!confirm(`Delete "${name}" permanently?\n\nRemoves ${orderCount} order(s), payments, and loyalty.\n\nCANNOT be undone.`)) return;
-        if (!confirm('Absolutely sure? Click OK to confirm.')) return;
-        const res = await fetch(`/admin/customer/${id}/delete`, {
-          method: 'POST', headers: { 'X-CSRF': '{{ csrf_token() }}' }
+        if (!confirm('Absolutely sure?')) return;
+        const r = await fetch(`/admin/customer/${id}/delete`, {
+          method: 'POST',
+          headers: { 'X-CSRF': '{{ csrf_token() }}' }
         });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) { alert('Deleted.'); location.reload(); }
-        else if (res.status === 403) { alert('Only superadmin can delete.'); }
-        else { alert('Delete failed: ' + (data.error || res.status)); }
+        const d = await r.json().catch(() => ({}));
+        if (r.ok) { alert('Deleted.'); location.reload(); }
+        else if (r.status === 403) { alert('Only superadmin can delete.'); }
+        else { alert('Delete failed: ' + (d.error || r.status)); }
       }
     </script>
   {% endif %}

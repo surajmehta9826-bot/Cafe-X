@@ -1,486 +1,936 @@
-<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Admin</title>
-<style>
-:root{--brown:#8b5a2b;--brown-d:#6d4620;--cream:#f9f3e8;--border:#ecdfc9;--text:#2b2118}
-*{box-sizing:border-box}
-body{font-family:system-ui;margin:0;background:#f4efe9;color:var(--text)}
-header{background:var(--brown);color:#fff;padding:12px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;box-shadow:0 2px 6px #0002}
-header b{font-size:16px;margin-right:8px}
-header a{color:#fff;cursor:pointer;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:14px}
-header a:hover{background:#00000022}
-section{display:none;padding:14px;max-width:1200px;margin:auto}
-section.on{display:block}
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — {{ cafe }}</title>
+  <style>
+    /* ============================================================
+       DESIGN TOKENS
+    ============================================================ */
+    :root {
+      --brown: #8b5a2b;
+      --brown-d: #6d4620;
+      --cream: #f9f3e8;
+      --border: #ecdfc9;
+      --text: #2b2118;
+      --muted: #888;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.10);
+    }
 
-.s{display:flex;gap:12px;flex-wrap:wrap}
-.s div{background:#fff;padding:14px 16px;border-radius:10px;flex:1;min-width:160px;box-shadow:0 1px 3px #0001}
-.s h2{margin:4px 0 0;color:var(--brown);font-size:22px}
-.s .label{color:#8b7355;font-size:13px;font-weight:500}
-.s .sub{color:#aaa;font-size:11px;margin-top:2px}
+    * { box-sizing: border-box; }
 
-input,select{padding:8px 10px;margin:3px 2px;border:1px solid #d8c9b3;border-radius:6px;font-size:14px;background:#fff}
-input:focus,select:focus{outline:none;border-color:var(--brown)}
-button{background:var(--brown);color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:14px}
-button:hover{background:var(--brown-d)}
-button.sec{background:#e8dcc8;color:#5b3d1a}
-button.sec:hover{background:#dcc9a8}
+    /* ============================================================
+       GLOBAL / BACKGROUND
+       Warm gradient + subtle radial highlights for a cozy café feel.
+    ============================================================ */
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: var(--text);
+      background-color: #f4efe9;
+      background-image:
+        radial-gradient(circle at 15% 15%, #fdf6ec 0%, transparent 35%),
+        radial-gradient(circle at 85% 75%, #f9efe0 0%, transparent 40%),
+        linear-gradient(135deg, #f4efe9 0%, #f7f1e7 50%, #f0e6d5 100%);
+      background-attachment: fixed;
+      background-size: cover;
+      min-height: 100vh;
+    }
 
-table{background:#fff;width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px #0001;margin-top:8px}
-th{background:var(--cream);text-align:left;padding:10px 12px;color:#5b3d1a;font-weight:600;border-bottom:1px solid var(--border);font-size:13px;text-transform:uppercase;letter-spacing:.03em}
-td{padding:10px 12px;border-bottom:1px solid #f3ebdc;font-size:14px;vertical-align:middle}
-tr:last-child td{border-bottom:0}
-tr:hover{background:#fdf9f2}
+    /* ============================================================
+       HEADER / NAVBAR
+    ============================================================ */
+    header {
+      background: linear-gradient(90deg, var(--brown-d) 0%, var(--brown) 100%);
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header b {
+      font-size: 16px;
+      margin-right: 8px;
+      letter-spacing: 0.02em;
+    }
+    header a {
+      color: #fff;
+      cursor: pointer;
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: background 0.15s ease;
+    }
+    header a:hover { background: rgba(0, 0, 0, 0.18); }
+    header a.active {
+      background: var(--brown-d);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+    }
 
-.menu-cat{background:var(--cream);font-weight:700;color:#5b3d1a;padding:8px 12px;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
-.pill{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600}
-.pill.avail{background:#d4edda;color:#1a6b1a}
-.pill.sold{background:#f8d7da;color:#8b1a1a}
-.pill.feat{background:#fde8c6;color:#8b5a2b}
-.menu-actions{display:flex;gap:6px;flex-wrap:wrap}
-.menu-actions form{display:inline}
+    /* ============================================================
+       MAIN SECTIONS (tabs)
+    ============================================================ */
+    section {
+      display: none;
+      padding: 16px;
+      max-width: 1200px;
+      margin: auto;
+    }
+    section.on { display: block; }
 
-/* ---------- Order bill card ---------- */
-.o{
-  background:#fff;
-  border-radius:12px;
-  padding:0;
-  margin:10px 0;
-  border:1px solid #eee;
-  border-left:6px solid #999;
-  box-shadow:0 1px 3px #0001;
-  overflow:visible;
-  position:relative;
-  font-size:14px;
-  transition:box-shadow .15s ease;
-}
-.o:hover{ box-shadow:0 3px 10px #0002; }
-.o.new       { border-left-color:#c0392b; }
-.o.accepted  { border-left-color:#e67e22; }
-.o.preparing { border-left-color:#f1c40f; }
-.o.ready     { border-left-color:#2ecc71; }
-.o.served    { border-left-color:#3498db; }
-.o.completed { border-left-color:#16a085; opacity:.9; }
-.o.cancelled { border-left-color:#7f8c8d; opacity:.65; }
-.o.paid      { background:linear-gradient(0deg,#f0fdf4,#fff 60%); }
+    /* ============================================================
+       STAT CARDS (dashboard)
+    ============================================================ */
+    .s {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .s > div {
+      background: #fff;
+      padding: 16px 18px;
+      border-radius: 12px;
+      flex: 1;
+      min-width: 160px;
+      box-shadow: var(--shadow-sm);
+      border-left: 4px solid var(--brown);
+    }
+    .s h2 {
+      margin: 4px 0 0;
+      color: var(--brown);
+      font-size: 22px;
+    }
+    .s .label {
+      color: #8b7355;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .s .sub {
+      color: #aaa;
+      font-size: 11px;
+      margin-top: 2px;
+    }
 
-.bill-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#faf6ee;border-bottom:1px solid #eee;border-radius:11px 11px 0 0;flex-wrap:wrap;gap:6px}
-.bill-number{font-weight:700;font-size:16px;color:#5b3d1a;margin-right:10px}
-.bill-table{background:#8b5a2b;color:#fff;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600}
-.bill-time{color:#888;font-size:12px}
+    /* ============================================================
+       FORMS
+    ============================================================ */
+    input, select {
+      padding: 8px 10px;
+      margin: 3px 2px;
+      border: 1px solid #d8c9b3;
+      border-radius: 6px;
+      font-size: 14px;
+      background: #fff;
+      transition: border-color 0.15s ease;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--brown);
+      box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.12);
+    }
 
-.bill-customer{padding:8px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed #eee;font-size:14px;flex-wrap:wrap;gap:6px}
-.bill-customer .phone{color:#8b5a2b;text-decoration:none;font-size:13px}
-.bill-customer .phone:hover{text-decoration:underline}
+    /* ============================================================
+       BUTTONS
+    ============================================================ */
+    button {
+      background: var(--brown);
+      color: #fff;
+      border: 0;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+    button:hover { background: var(--brown-d); }
+    button:active { transform: scale(0.98); }
+    button.sec {
+      background: #e8dcc8;
+      color: #5b3d1a;
+    }
+    button.sec:hover { background: #dcc9a8; }
+    button.danger { background: #c0392b; }
+    button.danger:hover { background: #962d22; }
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      filter: grayscale(0.4);
+    }
 
-.bill-items{padding:10px 14px;border-bottom:1px dashed #eee}
-.bill-item{display:flex;align-items:center;padding:3px 0}
-.bill-item .qty{min-width:32px;font-weight:600;color:#8b5a2b}
-.bill-item .name{color:#2b2118}
+    /* ============================================================
+       TABLES
+    ============================================================ */
+    table {
+      background: #fff;
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      margin-top: 8px;
+    }
+    th {
+      background: var(--cream);
+      text-align: left;
+      padding: 12px 14px;
+      color: #5b3d1a;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f3ebdc;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: 0; }
+    tr:hover { background: #fdf9f2; }
 
-.bill-totals{padding:10px 14px;background:#fdfaf4;border-bottom:1px dashed #eee}
-.bill-totals .row{display:flex;justify-content:space-between;padding:2px 0;color:#555;font-size:13px}
-.bill-totals .row.discount{color:#c0392b}
-.bill-totals .row.total{font-size:17px;font-weight:700;color:#2b2118;padding-top:6px;border-top:1px solid #eee;margin-top:4px}
-.promo-tag{background:#fde8c6;color:#8b5a2b;padding:1px 6px;border-radius:10px;font-size:11px;margin-left:4px}
+    /* ============================================================
+       ORDER BILL CARDS
+    ============================================================ */
+    .o {
+      background: #fff;
+      border-radius: 12px;
+      padding: 0;
+      margin: 10px 0;
+      border: 1px solid #eee;
+      border-left: 6px solid #999;
+      box-shadow: var(--shadow-sm);
+      overflow: visible;
+      position: relative;
+      z-index: 1;
+      transition: box-shadow 0.15s ease;
+    }
+    .o:hover { box-shadow: var(--shadow-md); }
+    .o select { position: relative; z-index: 2; }
 
-.bill-actions{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:12px 14px;flex-wrap:wrap}
-.status-wrap{display:flex;flex-direction:column;gap:4px}
-.status-wrap label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
-.status-select{padding:8px 12px;border-radius:6px;border:1px solid #d8c9b3;font-size:14px;font-weight:600;background:#fff;color:#2b2118;cursor:pointer;min-width:130px}
-.status-select.new       { background:#fdeceb; color:#c0392b; border-color:#f4b8b8; }
-.status-select.accepted  { background:#fdefdd; color:#e67e22; border-color:#f4d0a8; }
-.status-select.preparing { background:#fef8dc; color:#a58500; border-color:#f0e0a0; }
-.status-select.ready     { background:#e8f9ee; color:#1a6b1a; border-color:#b8e6c5; }
-.status-select.served    { background:#e4f0fa; color:#0a63b0; border-color:#b5d4f0; }
-.status-select.completed { background:#e8f6f2; color:#16a085; border-color:#b5e0d6; }
-.status-select.cancelled { background:#eee; color:#666; }
+    /* Status-based left border colors */
+    .o.new       { border-left-color: #c0392b; }
+    .o.accepted  { border-left-color: #e67e22; }
+    .o.preparing { border-left-color: #f1c40f; }
+    .o.ready     { border-left-color: #2ecc71; }
+    .o.served    { border-left-color: #3498db; }
+    .o.completed { border-left-color: #16a085; opacity: 0.9; }
+    .o.cancelled { border-left-color: #7f8c8d; opacity: 0.65; }
+    .o.paid      { background: linear-gradient(0deg, #f0fdf4, #fff 60%); }
 
-.action-buttons{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.action-buttons button{padding:9px 14px;font-size:14px;font-weight:600;border-radius:8px}
-.pay-btn{background:#27ae60 !important;color:#fff}
-.pay-btn:hover{background:#1e8449 !important}
-.paid-badge{background:#d4edda;color:#1a6b1a;padding:8px 14px;border-radius:8px;font-weight:700;font-size:14px}
+    /* Header strip */
+    .bill-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: #faf6ee;
+      border-bottom: 1px solid #eee;
+      border-radius: 9px 9px 0 0;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .bill-number {
+      font-weight: 700;
+      font-size: 16px;
+      color: #5b3d1a;
+      margin-right: 10px;
+    }
+    .bill-table {
+      background: var(--brown);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .bill-time { color: var(--muted); font-size: 12px; }
 
-/* ---------- Bulk actions ---------- */
-.bulk-check{position:absolute;top:10px;left:-22px;cursor:pointer}
-.bulk-check input{width:18px;height:18px;cursor:pointer}
-.bulk-bar{
-  position:fixed;bottom:20px;left:50%;
-  transform:translateX(-50%) translateY(120%);
-  background:#2b2118;color:#fff;padding:12px 20px;border-radius:99px;
-  display:flex;gap:12px;align-items:center;box-shadow:0 6px 24px #0004;
-  z-index:100;transition:transform .25s ease;font-size:14px;
-}
-.bulk-bar.on{transform:translateX(-50%) translateY(0)}
-.bulk-bar b{font-size:15px;margin-right:6px}
-.bulk-bar select,.bulk-bar button{padding:7px 12px;border-radius:6px;border:0;font-size:13px;cursor:pointer}
-.bulk-bar select{background:#fff;color:#333}
-.bulk-bar button{background:#8b5a2b;color:#fff;font-weight:600}
-.bulk-bar button:hover{background:#6d4620}
-.bulk-bar button.danger{background:#c0392b}
-.bulk-bar button.danger:hover{background:#962d22}
-</style></head>
-<body>{% include '_csrf.html' %}
-<header>
-  <b>{{cafe}} Admin</b>
-  <a onclick="go('orders')">Orders</a>
-  {% if role!='staff' %}
-    <a onclick="go('menu')">Menu</a>
-    <a onclick="go('tables')">Tables</a>
-    <a onclick="go('customers')">Customers</a>
-    <a onclick="go('loyalty')">Loyalty</a>
-    <a href="/admin/tables">Table status</a>
-    <a href="/admin/customers">Customer list</a>
-    <a href="/admin/promos">Promos</a>
-    <a href="/admin/reports">Reports</a>
-    <a href="/admin/pay-qr">Pay QR</a>
-    {% if role=='superadmin' %}<a href="/admin/audit">Audit</a>{% endif %}
-  {% endif %}
-  <a href=/admin/logout style="margin-left:auto">Logout</a>
-</header>
+    /* Customer row */
+    .bill-customer {
+      padding: 8px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px dashed #eee;
+      font-size: 14px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .bill-customer .phone {
+      color: var(--brown);
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .bill-customer .phone:hover { text-decoration: underline; }
 
-<section id=orders class=on>
-  <div class=s>
-    <div><div class="label">Today's sales</div><h2>Rs. {{'%.0f'|format(stats.sales)}}</h2></div>
-    <div><div class="label">Orders today</div><h2>{{stats.orders}}</h2></div>
-    <div><div class="label">Pending orders</div><h2>{{stats.pending_orders}}</h2><div class="sub">new / accepted / preparing</div></div>
-    <div><div class="label">Pending payments</div><h2>{{stats.pending_payments}}</h2><div class="sub">unpaid bills</div></div>
-    <div><div class="label">Print failures</div><h2>{{failed}}</h2></div>
-  </div>
-  <input id=q placeholder="Search name / phone" oninput=poll() style="width:260px">
-  <div id=ol></div>
-</section>
+    /* Items */
+    .bill-items {
+      padding: 10px 14px;
+      border-bottom: 1px dashed #eee;
+    }
+    .bill-item {
+      display: flex;
+      align-items: center;
+      padding: 3px 0;
+    }
+    .bill-item .qty {
+      min-width: 32px;
+      font-weight: 600;
+      color: var(--brown);
+    }
+    .bill-item .name { color: var(--text); }
 
-{% if role!='staff' %}
-<section id=menu>
-  <h2 style="margin:0 0 12px;color:var(--brown)">Add new item</h2>
-  <form method=post action=/admin/item enctype=multipart/form-data style="background:#fff;padding:14px;border-radius:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
-    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Category
-      <input name=category placeholder="Coffee" required style="min-width:140px">
-    </label>
-    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Name
-      <input name=name placeholder="Item name" required style="min-width:180px">
-    </label>
-    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Price
-      <input name=price placeholder="200" type=number required style="width:100px">
-    </label>
-    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Image URL
-      <input name=image_url placeholder="https://..." style="min-width:200px">
-    </label>
-    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Or upload
-      <input type=file name=image accept="image/*" style="font-size:12px">
-    </label>
-    <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Description
-      <input name=description placeholder="Short description" style="min-width:220px">
-    </label>
-    <label style="display:flex;align-items:center;gap:6px;padding:6px 0"><input type=checkbox name=veg checked> Veg</label>
-    <button>+ Add item</button>
-  </form>
+    /* Totals */
+    .bill-totals {
+      padding: 10px 14px;
+      background: #fdfaf4;
+      border-bottom: 1px dashed #eee;
+    }
+    .bill-totals .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+      color: #555;
+      font-size: 13px;
+    }
+    .bill-totals .row.discount { color: #c0392b; }
+    .bill-totals .row.total {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      padding-top: 6px;
+      border-top: 1px solid #eee;
+      margin-top: 4px;
+    }
+    .promo-tag {
+      background: #fde8c6;
+      color: var(--brown);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      margin-left: 4px;
+    }
 
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
-    <h2 style="margin:0;color:var(--brown)">Menu ({{ items|length }} items)</h2>
-    <input id="menu-filter" placeholder="Filter by name…" oninput="filterMenu()" style="width:220px">
-  </div>
+    /* Actions */
+    .bill-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 10px;
+      padding: 12px 14px;
+      flex-wrap: wrap;
+    }
+    .status-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .status-wrap label {
+      font-size: 11px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+    .status-select {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #d8c9b3;
+      font-size: 14px;
+      font-weight: 600;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      min-width: 130px;
+    }
+    .status-select.new       { background: #fdeceb; color: #c0392b; border-color: #f4b8b8; }
+    .status-select.accepted  { background: #fdefdd; color: #e67e22; border-color: #f4d0a8; }
+    .status-select.preparing { background: #fef8dc; color: #a58500; border-color: #f0e0a0; }
+    .status-select.ready     { background: #e8f9ee; color: #1a6b1a; border-color: #b8e6c5; }
+    .status-select.served    { background: #e4f0fa; color: #0a63b0; border-color: #b5d4f0; }
+    .status-select.completed { background: #e8f6f2; color: #16a085; border-color: #b5e0d6; }
+    .status-select.cancelled { background: #eee; color: #666; }
 
-  <table id="menu-table">
-    <thead><tr>
-      <th style="width:35%">Item</th>
-      <th style="width:12%">Price</th>
-      <th style="width:10%">Type</th>
-      <th style="width:13%">Status</th>
-      <th style="width:30%">Actions</th>
-    </tr></thead>
-    <tbody>
-      {% set current_cat = namespace(name='') %}
-      {% for i in items %}
-        {% if i.category.name != current_cat.name %}
-          {% set current_cat.name = i.category.name %}
-          <tr class="menu-cat-row"><td colspan="5" class="menu-cat">{{ i.category.name }}</td></tr>
-        {% endif %}
-        <tr data-name="{{ i.name|lower }}">
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .action-buttons button {
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+    }
+    .pay-btn { background: #27ae60 !important; }
+    .pay-btn:hover { background: #1e8449 !important; }
+    .paid-badge {
+      background: #d4edda;
+      color: #1a6b1a;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    /* ============================================================
+       MENU PAGE — category headers + pills
+    ============================================================ */
+    .menu-cat {
+      background: var(--cream);
+      font-weight: 700;
+      color: #5b3d1a;
+      padding: 10px 14px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .pill {
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .pill.avail { background: #d4edda; color: #1a6b1a; }
+    .pill.sold { background: #f8d7da; color: #8b1a1a; }
+    .pill.feat { background: #fde8c6; color: var(--brown); }
+
+    /* ============================================================
+       BULK ACTION BAR
+    ============================================================ */
+    .bulk-check {
+      position: absolute;
+      top: 10px;
+      left: -22px;
+      cursor: pointer;
+    }
+    .bulk-check input { width: 18px; height: 18px; cursor: pointer; }
+
+    .bulk-bar {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      background: var(--text);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 99px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+      z-index: 100;
+      transition: transform 0.25s ease;
+      font-size: 14px;
+    }
+    .bulk-bar.on { transform: translateX(-50%) translateY(0); }
+    .bulk-bar b { font-size: 15px; margin-right: 6px; }
+    .bulk-bar select, .bulk-bar button {
+      padding: 7px 12px;
+      border-radius: 6px;
+      border: 0;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .bulk-bar select { background: #fff; color: #333; }
+    .bulk-bar button { background: var(--brown); color: #fff; font-weight: 600; }
+    .bulk-bar button:hover { background: var(--brown-d); }
+    .bulk-bar button.danger { background: #c0392b; }
+    .bulk-bar button.danger:hover { background: #962d22; }
+
+    /* ============================================================
+       TOAST NOTIFICATIONS
+    ============================================================ */
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--text);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      transform: translateX(120%);
+      transition: transform 0.25s ease;
+      max-width: 320px;
+      pointer-events: auto;
+    }
+    .toast.on { transform: translateX(0); }
+    .toast.alert {
+      background: linear-gradient(135deg, #c0392b, #e74c3c);
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  {% include '_csrf.html' %}
+
+  <!-- ============================================================
+       HEADER / NAVBAR
+  ============================================================ -->
+  <header>
+    <b>{{ cafe }} Admin</b>
+    <a onclick="go('orders')" class="active">Orders</a>
+    {% if role != 'staff' %}
+      <a onclick="go('menu')">Menu</a>
+      <a onclick="go('tables')">Tables</a>
+      <a href="/admin/customers">Customers</a>
+      <a onclick="go('loyalty')">Loyalty</a>
+      <a href="/admin/tables">Table status</a>
+      <a href="/admin/promos">Promos</a>
+      <a href="/admin/reports">Reports</a>
+      <a href="/admin/pay-qr">Pay QR</a>
+      {% if role == 'superadmin' %}
+        <a href="/admin/audit">Audit</a>
+      {% endif %}
+    {% endif %}
+    <a href="/admin/logout" style="margin-left:auto">Logout</a>
+  </header>
+
+  <!-- ============================================================
+       SECTION: ORDERS
+  ============================================================ -->
+  <section id="orders" class="on">
+    <div class="s">
+      <div><div class="label">Today's sales</div><h2>Rs. {{ '%.0f'|format(stats.sales) }}</h2></div>
+      <div><div class="label">Orders today</div><h2>{{ stats.orders }}</h2></div>
+      <div>
+        <div class="label">Pending orders</div>
+        <h2>{{ stats.pending_orders }}</h2>
+        <div class="sub">new / accepted / preparing</div>
+      </div>
+      <div>
+        <div class="label">Pending payments</div>
+        <h2>{{ stats.pending_payments }}</h2>
+        <div class="sub">unpaid bills</div>
+      </div>
+      <div><div class="label">Print failures</div><h2>{{ failed }}</h2></div>
+    </div>
+
+    <input id="q" placeholder="Search name / phone" oninput="poll()" style="width:260px">
+
+    <div id="ol"></div>
+  </section>
+
+  {% if role != 'staff' %}
+
+  <!-- ============================================================
+       SECTION: MENU MANAGEMENT
+  ============================================================ -->
+  <section id="menu">
+    <h2 style="margin:0 0 12px; color:var(--brown)">Add new item</h2>
+
+    <form method="post" action="/admin/item" enctype="multipart/form-data"
+          style="background:#fff; padding:14px; border-radius:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px">
+      <label style="display:flex; flex-direction:column; font-size:12px; color:#666">
+        Category
+        <input name="category" placeholder="Coffee" required style="min-width:140px">
+      </label>
+      <label style="display:flex; flex-direction:column; font-size:12px; color:#666">
+        Name
+        <input name="name" placeholder="Item name" required style="min-width:180px">
+      </label>
+      <label style="display:flex; flex-direction:column; font-size:12px; color:#666">
+        Price
+        <input name="price" placeholder="200" type="number" required style="width:100px">
+      </label>
+      <label style="display:flex; flex-direction:column; font-size:12px; color:#666">
+        Image URL
+        <input name="image_url" placeholder="https://..." style="min-width:200px">
+      </label>
+      <label style="display:flex; flex-direction:column; font-size:12px; color:#666">
+        Or upload
+        <input type="file" name="image" accept="image/*" style="font-size:12px">
+      </label>
+      <label style="display:flex; flex-direction:column; font-size:12px; color:#666">
+        Description
+        <input name="description" placeholder="Short description" style="min-width:220px">
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; padding:6px 0">
+        <input type="checkbox" name="veg" checked> Veg
+      </label>
+      <button>+ Add item</button>
+    </form>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px">
+      <h2 style="margin:0; color:var(--brown)">Menu ({{ items|length }} items)</h2>
+      <input id="menu-filter" placeholder="Filter by name…" oninput="filterMenu()" style="width:220px">
+    </div>
+
+    <table id="menu-table">
+      <thead>
+        <tr>
+          <th style="width:35%">Item</th>
+          <th style="width:12%">Price</th>
+          <th style="width:10%">Type</th>
+          <th style="width:13%">Status</th>
+          <th style="width:30%">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set current_cat = namespace(name='') %}
+        {% for i in items %}
+          {% if i.category.name != current_cat.name %}
+            {% set current_cat.name = i.category.name %}
+            <tr class="menu-cat-row">
+              <td colspan="5" class="menu-cat">{{ i.category.name }}</td>
+            </tr>
+          {% endif %}
+          <tr data-name="{{ i.name|lower }}">
+            <td>
+              <strong>{{ i.name }}</strong>
+              {% if i.featured %}<span class="pill feat">★</span>{% endif %}
+              {% if i.description %}<br><small style="color:#888">{{ i.description }}</small>{% endif %}
+            </td>
+            <td><b>Rs. {{ '%.0f'|format(i.price) }}</b></td>
+            <td>
+              {% if i.veg %}<span style="color:#1a6b1a">● Veg</span>
+              {% else %}<span style="color:#8b1a1a">● Non-veg</span>{% endif %}
+            </td>
+            <td>
+              {% if i.available %}<span class="pill avail">Available</span>
+              {% else %}<span class="pill sold">Sold out</span>{% endif %}
+            </td>
+            <td style="display:flex; gap:6px; flex-wrap:wrap">
+              <a href="/admin/item/{{ i.id }}/options">
+                <button class="sec" type="button">Options</button>
+              </a>
+              <form method="post" action="/admin/item/{{ i.id }}/toggle">
+                <button class="sec" type="submit">
+                  {{ 'Mark sold out' if i.available else 'Mark available' }}
+                </button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============================================================
+       SECTION: TABLES (QR management)
+  ============================================================ -->
+  <section id="tables">
+    <form method="post" action="/admin/table">
+      <input name="name" placeholder="Table name/number" required>
+      <button>Add table</button>
+    </form>
+    <a href="/admin/qr-sheet" target="_blank">
+      <button class="sec" type="button">🖨 Printable QR sheet</button>
+    </a>
+
+    <table>
+      {% for t in tables %}
+        {% set in_use = t.locked_to_customer_id or t.status == 'occupied' %}
+        <tr>
           <td>
-            <strong>{{ i.name }}</strong>
-            {% if i.featured %}<span class="pill feat">★</span>{% endif %}
-            {% if i.description %}<br><small style="color:#888">{{ i.description }}</small>{% endif %}
+            <b>Table {{ t.name }}</b>
+            {% if in_use %}<span class="pill sold" style="margin-left:6px">In use</span>{% endif %}
           </td>
-          <td><b>Rs. {{ '%.0f'|format(i.price) }}</b></td>
-          <td>{% if i.veg %}<span style="color:#1a6b1a">● Veg</span>{% else %}<span style="color:#8b1a1a">● Non-veg</span>{% endif %}</td>
+          <td><img src="/admin/qr/{{ t.id }}.png" width="90"></td>
           <td>
-            {% if i.available %}<span class="pill avail">Available</span>
-            {% else %}<span class="pill sold">Sold out</span>{% endif %}
-          </td>
-          <td class="menu-actions">
-            <a href=/admin/item/{{i.id}}/options><button class=sec type=button>Options</button></a>
-            <form method=post action=/admin/item/{{i.id}}/toggle>
-              <button class=sec type=submit>{{ 'Mark sold out' if i.available else 'Mark available' }}</button>
+            <a href="/admin/qr/{{ t.id }}.png" download>
+              <button class="sec" type="button">Download</button>
+            </a>
+            <form method="post" action="/admin/table/{{ t.id }}/regen" style="display:inline">
+              <button class="sec" type="submit"
+                      {% if in_use %}disabled title="Table is in use — unlock first"{% endif %}>
+                Regenerate{% if in_use %} 🔒{% endif %}
+              </button>
             </form>
+            {% if in_use %}
+              <form method="post" action="/admin/table/{{ t.id }}/unlock" style="display:inline"
+                    onsubmit="return confirm('Force unlock Table {{ t.name }}?')">
+                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                <button class="danger" type="submit">🔓 Unlock</button>
+              </form>
+            {% endif %}
           </td>
         </tr>
       {% endfor %}
-    </tbody>
-  </table>
-</section>
+    </table>
+  </section>
 
-<section id=tables>
-  <form method=post action=/admin/table><input name=name placeholder="Table name/number" required><button>Add table</button></form>
-  <a href=/admin/qr-sheet target=_blank><button class=sec type=button>🖨 Printable QR sheet</button></a>
-  <table>
-    {% for t in tables %}
-      {# Compute in-use state #}
-      {% set live_orders = [] %}
-      {% set in_use = t.locked_to_customer_id or t.status == 'occupied' %}
-      <tr>
-        <td>
-          <b>Table {{ t.name }}</b>
-          {% if in_use %}
-            <span class="pill sold" style="margin-left:6px">In use</span>
-          {% endif %}
-        </td>
-        <td><img src=/admin/qr/{{ t.id }}.png width=90></td>
-        <td>
-          <a href=/admin/qr/{{ t.id }}.png download><button class=sec type=button>Download</button></a>
-          <form method=post action=/admin/table/{{ t.id }}/regen style=display:inline>
-            <button class=sec type=submit
-                    {% if in_use %}disabled title="Table is in use — unlock first" style="opacity:.4;cursor:not-allowed"{% endif %}>
-              Regenerate{% if in_use %} 🔒{% endif %}
-            </button>
-          </form>
-          {% if in_use %}
-          <form method=post action=/admin/table/{{ t.id }}/unlock style=display:inline
-                onsubmit="return confirm('Force unlock Table {{ t.name }}? The guest will need to re-scan.')">
-            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-            <button class=danger type=submit>🔓 Unlock</button>
-          </form>
-          {% endif %}
-        </td>
-      </tr>
-    {% endfor %}
-  </table>
-</section>
+  <!-- ============================================================
+       SECTION: LOYALTY SETTINGS
+  ============================================================ -->
+  <section id="loyalty">
+    <form method="post" action="/admin/loyalty">
+      {% for k, v in cfg.items() %}
+        <p>
+          <label style="display:inline-block; width:200px; color:#666">{{ k }}</label>
+          <input name="{{ k }}" value="{{ '%g'|format(v) }}" type="number">
+        </p>
+      {% endfor %}
+      <button>Save</button>
+    </form>
+  </section>
 
-<section id=loyalty>
-  <form method=post action=/admin/loyalty>
-    {% for k,v in cfg.items() %}
-      <p><label style="display:inline-block;width:200px;color:#666">{{k}}</label> <input name={{k}} value="{{'%g'|format(v)}}" type=number></p>
-    {% endfor %}
-    <button>Save</button>
-  </form>
-</section>
-{% endif %}
+  {% endif %}
 
-<!-- Bulk action bar -->
-<div class="bulk-bar" id="bulk-bar">
-  <b id="bulk-count">0</b> selected
-  <select id="bulk-status">
-    <option value="">Set status…</option>
-    <option value="new">new</option>
-    <option value="accepted">accepted</option>
-    <option value="preparing">preparing</option>
-    <option value="ready">ready</option>
-    <option value="served">served</option>
-    <option value="completed">completed</option>
-    <option value="cancelled">cancelled</option>
-  </select>
-  <button onclick="bulkSetStatus()">Apply</button>
-  <button class="danger" onclick="clearBulkSelection()">Clear</button>
-</div>
+  <!-- ============================================================
+       BULK ACTION BAR
+  ============================================================ -->
+  <div class="bulk-bar" id="bulk-bar">
+    <b id="bulk-count">0</b> selected
+    <select id="bulk-status">
+      <option value="">Set status…</option>
+      <option value="new">new</option>
+      <option value="accepted">accepted</option>
+      <option value="preparing">preparing</option>
+      <option value="ready">ready</option>
+      <option value="served">served</option>
+      <option value="completed">completed</option>
+      <option value="cancelled">cancelled</option>
+    </select>
+    <button onclick="bulkSetStatus()">Apply</button>
+    <button class="danger" onclick="clearBulkSelection()">Clear</button>
+  </div>
 
-<script>
-const go = n => { document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === n)); };
-if (location.hash) go(location.hash.slice(1));
-const ST = {{ statuses|tojson }};
-let last = 0;
+  <!-- ============================================================
+       TOASTS
+  ============================================================ -->
+  <div id="toast-container"></div>
 
-// ---------- Sound ----------
-let audioCtx = null;
-function playNewOrderBeep(){
-  try{
-    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const t = audioCtx.currentTime;
-    [880, 1320].forEach((freq, i) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.frequency.value = freq;
-      osc.type = 'sine';
-      gain.gain.setValueAtTime(0.15, t + i * 0.15);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.15 + 0.3);
-      osc.connect(gain).connect(audioCtx.destination);
-      osc.start(t + i * 0.15);
-      osc.stop(t + i * 0.15 + 0.3);
-    });
-  }catch(e){}
-}
-
-// ---------- Rendering ----------
-function renderOrders(d){
-  document.getElementById('ol').innerHTML = d.map(o => {
-    const paid = o.paid === 'paid';
-    const itemsHtml = o.items.map(line => {
-      const m = line.match(/^(\d+)\s*x\s*(.+)$/);
-      if(!m) return `<div class="bill-item"><span class="name">${line}</span></div>`;
-      return `<div class="bill-item"><span class="qty">${m[1]}×</span><span class="name">${m[2]}</span></div>`;
-    }).join('');
-    const subtotal = o.discount > 0 ? (o.total + o.discount) : o.total;
-    const totalsHtml = o.discount > 0 ? `
-      <div class="row"><span>Subtotal</span><span>Rs. ${subtotal.toFixed(0)}</span></div>
-      <div class="row discount">
-        <span>Discount${o.promo ? ` <span class="promo-tag">🏷 ${o.promo}</span>` : ''}</span>
-        <span>− Rs. ${o.discount.toFixed(0)}</span>
-      </div>
-      <div class="row total"><span>Total</span><span>Rs. ${o.total.toFixed(0)}</span></div>
-    ` : `<div class="row total"><span>Total</span><span>Rs. ${o.total.toFixed(0)}</span></div>`;
-
-    return `
-    <div class="o ${o.status}${paid ? ' paid' : ''}" data-id="${o.id}">
-      <label class="bulk-check">
-        <input type="checkbox" class="order-check" value="${o.id}" onchange="updateBulkBar()">
-      </label>
-      <div class="bill-head">
-        <div>
-          <span class="bill-number">#${o.number}</span>
-          <span class="bill-table">Table ${o.table}</span>
-        </div>
-        <div class="bill-time">🕐 ${o.time}</div>
-      </div>
-      <div class="bill-customer">
-        <b>${o.customer}</b>
-        <a href="tel:${o.phone}" class="phone">📞 ${o.phone}</a>
-      </div>
-      <div class="bill-items">${itemsHtml}</div>
-      <div class="bill-totals">${totalsHtml}</div>
-      <div class="bill-actions">
-        <div class="status-wrap">
-          <label>Status</label>
-          <select class="status-select ${o.status}" onchange="st(${o.id}, this.value)">
-            ${ST.map(s=>`<option ${s==o.status?'selected':''}>${s}</option>`).join('')}
-          </select>
-        </div>
-        <div class="action-buttons">
-          <button class="sec" onclick="window.open('/admin/order/${o.id}/print','_blank')" title="Print bill">🧾 Bill</button>
-          <button class="sec" onclick="fetch('/admin/order/${o.id}/reprint',{method:'POST'})" title="Reprint ticket">🖨 Reprint</button>
-          ${paid
-            ? `<span class="paid-badge">✓ Paid</span>`
-            : `<button class="pay-btn" onclick="pay(${o.id})">💵 Mark paid</button>`}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  updateBulkBar();
-}
-
-async function poll(){
-  const d = await(await fetch('/admin/api/orders?q=' + encodeURIComponent(document.getElementById('q').value))).json();
-  if(d.length && d[0].id > last && last > 0){
-    playNewOrderBeep();
-  }
-  last = d.length ? d[0].id : last;
-  renderOrders(d);
-}
-
-// ---------- SSE ----------
-let sseSource = null;
-let sseRetryDelay = 5000;
-let useSSE = true;
-
-function startSSE(){
-  if(!useSSE) return;
-  try{
-    if(sseSource) sseSource.close();
-    sseSource = new EventSource('/admin/api/orders/stream');
-    sseSource.onmessage = (ev) => {
-      // Ignore keepalive comments
-      if(!ev.data || ev.data.trim().startsWith(':')) return;
-      try{
-        const d = JSON.parse(ev.data);
-        if(!Array.isArray(d)) return;
-        if(d.length && d[0].id > last && last > 0){
-          playNewOrderBeep();
-        }
-        last = d.length ? d[0].id : last;
-        renderOrders(d);
-        sseRetryDelay = 5000; // reset backoff on success
-      }catch(e){ /* ignore malformed */ }
+  <!-- ============================================================
+       SCRIPTS
+  ============================================================ -->
+  <script>
+    // ============================================================
+    //  NAVIGATION TABS
+    // ============================================================
+    const go = (n) => {
+      document.querySelectorAll('section').forEach((s) => s.classList.toggle('on', s.id === n));
+      document.querySelectorAll('header a').forEach((a) => a.classList.remove('active'));
+      const activeLink = [...document.querySelectorAll('header a')].find((a) => a.getAttribute('onclick') === `go('${n}')`);
+      if (activeLink) activeLink.classList.add('active');
     };
-    sseSource.onerror = () => {
-      if(sseSource){ sseSource.close(); sseSource = null; }
-      if(sseRetryDelay < 60000){
-        setTimeout(startSSE, sseRetryDelay);
-        sseRetryDelay = Math.min(sseRetryDelay * 2, 60000);
-      } else {
-        useSSE = false;
-        setInterval(poll, 4000);
-      }
-    };
-  }catch(e){
-    useSSE = false;
-    setInterval(poll, 4000);
-  }
-}
+    if (location.hash) go(location.hash.slice(1));
 
-// ---------- Actions ----------
-async function pay(id){
-  const r = await fetch(`/admin/order/${id}/pay`, {method:'POST'});
-  const d = await r.json();
-  if(d.rotated) alert('✅ Bill paid.\n\nTable QR has been rotated. Download the new QR from Tables.');
-  else alert('✅ Bill paid. Order marked as completed.');
-  poll();
-}
+    const ST = {{ statuses|tojson }};
+    let last = 0;
 
-async function st(id, s){
-  await fetch(`/admin/order/${id}/status`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({status:s})
-  });
-  poll();
-}
+    // ============================================================
+    //  AUDIO — two-tone beep when a new order arrives
+    // ============================================================
+    let audioCtx = null;
+    let audioUnlocked = false;
 
-function filterMenu(){
-  const q = document.getElementById('menu-filter').value.toLowerCase();
-  document.querySelectorAll('#menu-table tbody tr[data-name]').forEach(tr => {
-    tr.style.display = tr.dataset.name.includes(q) ? '' : 'none';
-  });
-  const rows = [...document.querySelectorAll('#menu-table tbody tr')];
-  for(let i = 0; i < rows.length; i++){
-    if(rows[i].classList.contains('menu-cat-row')){
-      let visible = false;
-      for(let j = i + 1; j < rows.length; j++){
-        if(rows[j].classList.contains('menu-cat-row')) break;
-        if(rows[j].style.display !== 'none'){ visible = true; break; }
-      }
-      rows[i].style.display = visible ? '' : 'none';
+    function playNewOrderBeep() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const t = audioCtx.currentTime;
+        [880, 1320].forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.frequency.value = freq;
+          osc.type = 'sine';
+          gain.gain.setValueAtTime(0.18, t + i * 0.15);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.15 + 0.35);
+          osc.connect(gain).connect(audioCtx.destination);
+          osc.start(t + i * 0.15);
+          osc.stop(t + i * 0.15 + 0.35);
+        });
+      } catch (e) { /* ignore */ }
     }
-  }
-}
 
-// ---------- Bulk actions ----------
-function updateBulkBar(){
-  const checked = document.querySelectorAll('.order-check:checked');
-  const bar = document.getElementById('bulk-bar');
-  document.getElementById('bulk-count').textContent = checked.length;
-  bar.classList.toggle('on', checked.length > 0);
-}
+    ['click', 'touchstart', 'keydown'].forEach((evt) => {
+      document.addEventListener(evt, () => {
+        if (audioUnlocked) return;
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          audioUnlocked = true;
+        } catch (e) {}
+      }, { once: true, capture: true });
+    });
 
-function clearBulkSelection(){
-  document.querySelectorAll('.order-check:checked').forEach(cb => cb.checked = false);
-  updateBulkBar();
-}
+    // ============================================================
+    //  TOAST
+    // ============================================================
+    function showToast(msg, type) {
+      const c = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      el.className = 'toast ' + (type || 'info');
+      el.textContent = msg;
+      c.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('on'));
+      setTimeout(() => {
+        el.classList.remove('on');
+        setTimeout(() => el.remove(), 300);
+      }, 5000);
+    }
 
-async function bulkSetStatus(){
-  const status = document.getElementById('bulk-status').value;
-  if(!status){ alert('Pick a status first'); return; }
-  const ids = [...document.querySelectorAll('.order-check:checked')].map(cb => cb.value);
-  if(!ids.length) return;
-  if(!confirm(`Set status to "${status}" for ${ids.length} order(s)?`)) return;
-  await Promise.all(ids.map(id => fetch(`/admin/order/${id}/status`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({status})
-  })));
-  clearBulkSelection();
-  poll();
-}
+    // ============================================================
+    //  POLL ORDERS
+    // ============================================================
+    async function poll() {
+      const d = await (await fetch('/admin/api/orders?q=' + encodeURIComponent(document.getElementById('q').value))).json();
 
-// ---------- Init ----------
-poll();
-startSSE();
-setInterval(() => { if(!sseSource) poll(); }, 30000);
-</script></body></html>
+      if (d.length && d[0].id > last && last > 0) {
+        playNewOrderBeep();
+        showToast('🔔 New order #' + d[0].number, 'alert');
+        document.title = '🔔 New order — ' + document.title.replace(/^🔔 /, '');
+        setTimeout(() => { document.title = document.title.replace(/^🔔 /, ''); }, 8000);
+      }
+      last = d.length ? d[0].id : last;
+
+      document.getElementById('ol').innerHTML = d.map((o) => {
+        const paid = o.paid === 'paid';
+
+        const itemsHtml = o.items.map((line) => {
+          const m = line.match(/^(\d+)\s*x\s*(.+)$/);
+          if (!m) return `<div class="bill-item"><span>${line}</span></div>`;
+          return `<div class="bill-item"><span class="qty">${m[1]}×</span><span class="name">${m[2]}</span></div>`;
+        }).join('');
+
+        const subtotal = o.discount > 0 ? (o.total + o.discount) : o.total;
+        const totalsHtml = o.discount > 0
+          ? `
+            <div class="row"><span>Subtotal</span><span>Rs. ${subtotal.toFixed(0)}</span></div>
+            <div class="row discount">
+              <span>Discount${o.promo ? ' <span class="promo-tag">🏷 ' + o.promo + '</span>' : ''}</span>
+              <span>− Rs. ${o.discount.toFixed(0)}</span>
+            </div>
+            <div class="row total"><span>Total</span><span>Rs. ${o.total.toFixed(0)}</span></div>`
+          : `<div class="row total"><span>Total</span><span>Rs. ${o.total.toFixed(0)}</span></div>`;
+
+        return `
+          <div class="o ${o.status}${paid ? ' paid' : ''}" data-id="${o.id}">
+            <label class="bulk-check">
+              <input type="checkbox" class="order-check" value="${o.id}" onchange="updateBulkBar()">
+            </label>
+            <div class="bill-head">
+              <div>
+                <span class="bill-number">#${o.number}</span>
+                <span class="bill-table">Table ${o.table}</span>
+              </div>
+              <div class="bill-time">🕐 ${o.time}</div>
+            </div>
+            <div class="bill-customer">
+              <b>${o.customer}</b>
+              <a href="tel:${o.phone}" class="phone">📞 ${o.phone}</a>
+            </div>
+            <div class="bill-items">${itemsHtml}</div>
+            <div class="bill-totals">${totalsHtml}</div>
+            <div class="bill-actions">
+              <div class="status-wrap">
+                <label>Status</label>
+                <select class="status-select ${o.status}" onchange="st(${o.id}, this.value)">
+                  ${ST.map((s) => `<option ${s === o.status ? 'selected' : ''}>${s}</option>`).join('')}
+                </select>
+              </div>
+              <div class="action-buttons">
+                <button class="sec" onclick="window.open('/admin/order/${o.id}/print','_blank')">🧾 Bill</button>
+                <button class="sec" onclick="fetch('/admin/order/${o.id}/reprint',{method:'POST'})">🖨 Reprint</button>
+                ${paid
+                  ? `<span class="paid-badge">✓ Paid</span>`
+                  : `<button class="pay-btn" onclick="pay(${o.id})">💵 Mark paid</button>`}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      updateBulkBar();
+    }
+
+    async function pay(id) {
+      const r = await fetch(`/admin/order/${id}/pay`, { method: 'POST' });
+      const d = await r.json();
+      if (d.rotated) alert('✅ Bill paid.\n\nTable QR has been rotated.');
+      else alert('✅ Bill paid.');
+      poll();
+    }
+
+    async function st(id, s) {
+      await fetch(`/admin/order/${id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: s })
+      });
+      poll();
+    }
+
+    // ============================================================
+    //  MENU FILTER
+    // ============================================================
+    function filterMenu() {
+      const q = document.getElementById('menu-filter').value.toLowerCase();
+      document.querySelectorAll('#menu-table tbody tr[data-name]').forEach((tr) => {
+        tr.style.display = tr.dataset.name.includes(q) ? '' : 'none';
+      });
+
+      // Hide category headers if all their children are hidden
+      const rows = [...document.querySelectorAll('#menu-table tbody tr')];
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i].classList.contains('menu-cat-row')) {
+          let visible = false;
+          for (let j = i + 1; j < rows.length; j++) {
+            if (rows[j].classList.contains('menu-cat-row')) break;
+            if (rows[j].style.display !== 'none') { visible = true; break; }
+          }
+          rows[i].style.display = visible ? '' : 'none';
+        }
+      }
+    }
+
+    // ============================================================
+    //  BULK ACTIONS
+    // ============================================================
+    function updateBulkBar() {
+      const checked = document.querySelectorAll('.order-check:checked');
+      document.getElementById('bulk-count').textContent = checked.length;
+      document.getElementById('bulk-bar').classList.toggle('on', checked.length > 0);
+    }
+
+    function clearBulkSelection() {
+      document.querySelectorAll('.order-check:checked').forEach((cb) => cb.checked = false);
+      updateBulkBar();
+    }
+
+    async function bulkSetStatus() {
+      const s = document.getElementById('bulk-status').value;
+      if (!s) { alert('Pick a status'); return; }
+      const ids = [...document.querySelectorAll('.order-check:checked')].map((cb) => cb.value);
+      if (!ids.length) return;
+      if (!confirm(`Set ${ids.length} order(s) to "${s}"?`)) return;
+      await Promise.all(ids.map((id) => fetch(`/admin/order/${id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: s })
+      })));
+      clearBulkSelection();
+      poll();
+    }
+
+    // ============================================================
+    //  BOOT
+    // ============================================================
+    poll();
+    setInterval(poll, 4000);
+  </script>
+</body>
+</html>

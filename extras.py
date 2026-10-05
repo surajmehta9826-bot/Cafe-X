@@ -330,7 +330,10 @@ def tables_status():
         elapsed_min = int((now() - cur.created).total_seconds() / 60) if cur else 0
         rows.append((t, state, cur, elapsed_min))
 
-    return page("tables", rows=rows, counts=counts)
+    # Pass the true max order id so the alert baseline matches the API exactly
+    max_order_id = db.session.query(db.func.coalesce(db.func.max(Order.id), 0)).scalar() or 0
+
+    return page("tables", rows=rows, counts=counts, max_order_id=int(max_order_id))
 
 
 @app.get("/admin/api/tables/status")
