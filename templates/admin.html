@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Admin</title>
+<style>body{font-family:system-ui;margin:0;background:#f4efe9}header{background:#8b5a2b;color:#fff;padding:12px;display:flex;gap:14px;flex-wrap:wrap}
+header a{color:#fff;cursor:pointer}section{display:none;padding:14px}section.on{display:block}.o{background:#fff;border-radius:12px;padding:12px;margin:8px 0;border-left:6px solid #c33}
+.s{display:flex;gap:10px}.s div{background:#fff;padding:12px;border-radius:12px;flex:1}input,select{padding:6px;margin:2px}table{background:#fff;width:100%}</style></head><body>{% include '_csrf.html' %}
+<header><b>{{cafe}}</b><a onclick="go('orders')">Orders</a>{% if role!='staff' %}<a onclick="go('menu')">Menu</a><a onclick="go('tables')">Tables</a><a onclick="go('customers')">Customers</a><a onclick="go('loyalty')">Loyalty</a>{% endif %}{% if role!='staff' %}<a href=/admin/tables>Table status</a><a href=/admin/promos>Promos</a><a href=/admin/reports>Reports</a><a href=/admin/audit>Audit</a>{% endif %}<a href=/admin/logout>Logout</a></header>
+<section id=orders class=on><div class=s><div>Today's sales<h2>Rs. {{'%.0f'|format(stats.sales)}}</h2></div><div>Orders<h2>{{stats.orders}}</h2></div><div>Pending<h2>{{stats.pending}}</h2></div>
+<div>Print failures<h2>{{failed}}</h2></div></div><input id=q placeholder="Search name / phone" oninput=poll()><div id=ol></div></section>
+{% if role!='staff' %}
+<section id=menu><form method=post action=/admin/item enctype=multipart/form-data><input name=category placeholder=Category required><input name=name placeholder=Name required><input name=price placeholder=Price required>
+<input name=image_url placeholder="Image URL"><input type=file name=image accept="image/*"><input name=description placeholder=Description><label><input type=checkbox name=veg checked>Veg</label><button>Add item</button></form>
+<table>{% for i in items %}<tr><td>{{i.name}}</td><td>Rs. {{i.price}}</td><td><a href=/admin/item/{{i.id}}/options>Variants/Add-ons</a></td><td><form method=post action=/admin/item/{{i.id}}/toggle><button>{{'Available → mark sold out' if i.available else 'Sold out → make available'}}</button></form></td></tr>{% endfor %}</table></section>
+<section id=tables><form method=post action=/admin/table><input name=name placeholder="Table name/number" required><button>Add table</button></form> <a href=/admin/qr-sheet target=_blank>🖨 Printable QR sheet</a>
+<table>{% for t in tables %}<tr><td>Table {{t.name}}</td><td><img src=/admin/qr/{{t.id}}.png width=90></td><td><a href=/admin/qr/{{t.id}}.png download>Download</a>
+<form method=post action=/admin/table/{{t.id}}/regen style=display:inline><button>Regenerate</button></form></td></tr>{% endfor %}</table></section>
+<section id=customers><table>{% for c in customers %}<tr><td><a href=/admin/customer/{{c.id}}>{{c.name}}</a></td><td>{{c.phone}}</td><td>{{c.created.strftime('%d %b %Y')}}</td></tr>{% endfor %}</table></section>
+<section id=loyalty><form method=post action=/admin/loyalty>{% for k,v in cfg.items() %}<p>{{k}} <input name={{k}} value="{{'%g'|format(v)}}"></p>{% endfor %}<button>Save</button></form></section>{% endif %}
+<script>
+const go=n=>{document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id==n))};if(location.hash)go(location.hash.slice(1));
+const ST={{statuses|tojson}};let last=0;
+async function poll(){const d=await(await fetch('/admin/api/orders?q='+encodeURIComponent(document.getElementById('q').value))).json();
+if(d.length&&d[0].id>last&&last){try{new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=').play()}catch(e){}}last=d.length?d[0].id:last;
+document.getElementById('ol').innerHTML=d.map(o=>`<div class=o><b>#${o.number} · Table ${o.table}</b> · ${o.time}<br>${o.customer} · ${o.phone}<br>${o.items.join('<br>')}<br>
+Discount Rs. ${o.discount} · <b>Total Rs. ${o.total}</b><br><select onchange="st(${o.id},this.value)">${ST.map(s=>`<option ${s==o.status?'selected':''}>${s}</option>`).join('')}</select>
+<button onclick="fetch('/admin/order/${o.id}/reprint',{method:'POST'})">Reprint</button> ${o.paid=='paid'?'💰 Paid':`<button onclick="pay(${o.id})">Mark paid</button>`}${o.promo?' 🏷 '+o.promo:''}</div>`).join('')}
+async function pay(id){await fetch(`/admin/order/${id}/pay`,{method:'POST'});poll()}
+async function st(id,s){await fetch(`/admin/order/${id}/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:s})})}
+poll();setInterval(poll,4000)
+</script></body></html>

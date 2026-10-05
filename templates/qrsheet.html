@@ -1,0 +1,7 @@
+<!doctype html><html><head><meta charset=utf-8><title>{{cafe}} · QR sheet</title>
+<style>body{font-family:system-ui;margin:0;padding:16px}.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.c{border:2px dashed #8b5a2b;border-radius:14px;padding:14px;text-align:center;break-inside:avoid}.c h3{margin:0;color:#8b5a2b}.c img{width:190px;height:190px}
+.c b{display:block;font-size:26px}.top{margin-bottom:12px}@media print{.top{display:none}body{padding:0}}</style></head><body>
+<div class=top><button onclick="print()">🖨 Print</button> <a href=/admin#tables>← Back</a></div>
+<div class=g>{% for t in tables %}<div class=c><h3>{{cafe}}</h3><small>Scan to view menu &amp; order</small><br><img src=/admin/qr/{{t.id}}.png alt="QR"><b>Table {{t.name}}</b></div>{% endfor %}</div>
+</body></html>

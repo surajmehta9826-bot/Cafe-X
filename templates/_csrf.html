@@ -1,0 +1,3 @@
+<meta name=csrf content="{{csrf_token()}}"><script>(()=>{const t=document.querySelector('meta[name=csrf]').content,f=window.fetch;
+window.fetch=(u,o={})=>{o.headers=Object.assign({'X-CSRF':t},o.headers||{});return f(u,o)};
+document.addEventListener('submit',e=>{const i=document.createElement('input');i.type='hidden';i.name='csrf';i.value=t;e.target.appendChild(i)},true)})()</script>

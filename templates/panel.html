@@ -1,0 +1,31 @@
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><title>{{cafe}}</title>
+<style>body{font-family:system-ui;margin:0;background:#f4efe9}header{background:#8b5a2b;color:#fff;padding:12px;display:flex;gap:14px}header a{color:#fff}main{padding:14px}
+.c{background:#fff;border-radius:12px;padding:12px;margin:8px 0}table{background:#fff;width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid #eee;text-align:left}input,select{padding:6px;margin:2px}</style>
+<body>{% include '_csrf.html' %}<header><b>{{cafe}}</b><a href=/admin>← Dashboard</a></header><main>
+{% if page=='promos' %}<h2>Discounts & promotions</h2>
+<form method=post class=c><input name=name placeholder="Name (Weekend Special)" required><select name=kind><option value=percent>Percent %</option><option value=fixed>Fixed Rs.</option></select>
+<input name=value placeholder=Value required size=6><input name=min_order placeholder="Min order" size=8><input name=max_discount placeholder="Max discount" size=8>
+Start<input type=date name=start> End<input type=date name=end><select name=category_id><option value="">All items</option>{% for c in cats %}<option value={{c.id}}>{{c.name}}</option>{% endfor %}</select><button>Add</button></form>
+<table><tr><th>Name<th>Type<th>Value<th>Min<th>Max<th>Dates<th></tr>{% for d in discounts %}<tr><td>{{d.name}}<td>{{d.kind}}<td>{{d.value}}<td>{{d.min_order}}<td>{{d.max_discount or '—'}}
+<td>{{d.start.strftime('%d %b') if d.start else '…'}} → {{d.end.strftime('%d %b') if d.end else '…'}}<td><form method=post action=/admin/promos/{{d.id}}/toggle><button>{{'Active ✓' if d.active else 'Inactive'}}</button></form></tr>{% endfor %}</table>
+{% elif page=='reports' %}<h2>Reports</h2><div id=k style="display:flex;gap:8px;flex-wrap:wrap"></div>
+<div class=c><canvas id=a height=110></canvas></div><div class=c><canvas id=b height=110></canvas></div><div class=c id=l></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script><script>
+fetch('/admin/api/reports').then(r=>r.json()).then(d=>{const k=(t,v)=>`<div class=c><small>${t}</small><h3>${v}</h3></div>`;
+document.getElementById('k').innerHTML=k('7 days','Rs. '+d.week)+k('This month','Rs. '+d.month)+k('This year','Rs. '+d.year)+k('Avg order','Rs. '+d.avg)+k('New customers today',d.new_customers)+k('All customers',d.total_customers)+k('Orders by status',Object.entries(d.status).map(e=>e.join(': ')).join(' · '));
+new Chart(a,{type:'line',data:{labels:d.labels,datasets:[{label:'Daily sales (Rs.)',data:d.sales,borderColor:'#8b5a2b'}]}});
+new Chart(b,{type:'bar',data:{labels:d.top.map(t=>t[0]),datasets:[{label:'Most ordered',data:d.top.map(t=>t[1]),backgroundColor:'#c9965a'}]}});
+l.innerHTML='<b>Highest-spending customers</b><br>'+d.loyal.map(x=>x[0]+' — Rs. '+x[1]).join('<br>')})</script>
+{% elif page=='audit' %}<h2>Admin activity log</h2><table><tr><th>Time<th>Admin<th>Action<th>IP</tr>{% for g in logs %}<tr><td>{{g.created.strftime('%d %b %H:%M')}}<td>{{names.get(g.admin_id)}}<td>{{g.action}}<td>{{g.ip}}</tr>{% endfor %}</table>
+{% elif page=='tables' %}<h2>Table status</h2><table><tr><th>Table<th>Status<th>Current order</tr>{% for t,s,o in rows %}<tr><td><a href=/admin/table/{{t.id}}>Table {{t.name}}</a><td>{{s}}<td>{{('#%d'%o.number) if o else '—'}}</tr>{% endfor %}</table>
+{% elif page=='table' %}<h2>Table {{t.name}}</h2><form method=post action=/admin/table/{{t.id}}/status><select name=status>{% for s in ['available','reserved','cleaning','disabled'] %}<option {{'selected' if s==t.status}}>{{s}}</option>{% endfor %}</select><button>Set status</button></form>
+{% for o in orders %}<div class=c>#{{o.number}} · {{o.created.strftime('%d %b %H:%M')}} · {{o.customer.name}} · Rs. {{o.total}} · <b>{{o.status}}</b>{{' (current)' if o.status in live}}<br>{% for i in o.items %}{{i.qty}} × {{i.name}}<br>{% endfor %}</div>{% endfor %}
+{% elif page=='customer' %}<h2>{{c.name}} {{'(disabled)' if c.disabled}}</h2><p>{{c.phone}} · joined {{c.created.strftime('%d %b %Y')}}<br>Orders: {{orders|length}} · Spent: Rs. {{'%.0f'|format(spent)}} · Loyalty {{loy.progress}}/{{loy.required}} · Reward available: {{loy.reward}} · Redeemed: {{redeemed}}</p>
+<form method=post action=/admin/customer/{{c.id}}/toggle><button>{{'Enable' if c.disabled else 'Disable'}} account</button></form>
+<form method=post action=/admin/customer/{{c.id}}/adjust class=c>Adjust loyalty orders (+/−) <input name=delta type=number required size=4><input name=note placeholder=Reason><button>Apply</button>{% for x in txs %}<br><small>{{x.created.strftime('%d %b')}}: {{x.delta}} {{x.note}}</small>{% endfor %}</form>
+{% for o in orders %}<div class=c>#{{o.number}} · {{o.created.strftime('%d %b %Y')}} · Table {{o.table.name}} · Rs. {{o.total}} · {{o.status}}</div>{% endfor %}
+{% elif page=='options' %}<h2>{{item.name}} — variants & add-ons</h2>
+<form method=post action=/admin/item/{{item.id}}/variant class=c>Variant (e.g. Large, +50) <input name=name required><input name=price placeholder="+ price"><button>Add</button></form>
+<form method=post action=/admin/item/{{item.id}}/addon class=c>Add-on (e.g. Extra cheese) <input name=name required><input name=price placeholder=Price><button>Add</button></form>
+<table>{% for t,rows in [('variant',variants),('addon',addons)] %}{% for r in rows %}<tr><td>{{t}}<td>{{r.name}}<td>{{r.delta if t=='variant' else r.price}}<td><form method=post action=/admin/item/{{item.id}}/del><input type=hidden name=t value={{t}}><input type=hidden name=id value={{r.id}}><button>Delete</button></form></tr>{% endfor %}{% endfor %}</table>{% endif %}
+</main>
