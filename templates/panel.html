@@ -7,6 +7,7 @@ header{background:var(--brown);color:#fff;padding:12px 16px;display:flex;gap:14p
 header b{font-size:16px;margin-right:8px}
 header a{color:#fff;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:14px}
 header a:hover{background:#00000022}
+header a.active{background:#6d4620}
 main{padding:14px;max-width:1200px;margin:auto}
 .c{background:#fff;border-radius:12px;padding:14px;margin:8px 0;box-shadow:0 1px 3px #0001}
 table{background:#fff;width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px #0001;margin-top:8px}
@@ -30,13 +31,17 @@ button.danger:hover{background:#962d22}
 <body>{% include '_csrf.html' %}
 <header>
   <b>{{cafe}} Admin</b>
-  <a href="/admin">← Dashboard</a>
-  <a href="/admin/customers">Customers</a>
-  <a href="/admin/promos">Promos</a>
-  <a href="/admin/reports">Reports</a>
-  <a href="/admin/pay-qr">Pay QR</a>
-  <a href="/admin/tables">Tables</a>
-  <a href="/admin/audit">Audit</a>
+  <a href="/admin">Orders</a>
+  <a href="/admin#menu">Menu</a>
+  <a href="/admin#tables">Tables</a>
+  <a href="/admin#customers">Customers</a>
+  <a href="/admin#loyalty">Loyalty</a>
+  <a href="/admin/tables" class="{{ 'active' if page in ('tables','table') else '' }}">Table status</a>
+  <a href="/admin/customers" class="{{ 'active' if page == 'customers' else '' }}">Customer list</a>
+  <a href="/admin/promos" class="{{ 'active' if page == 'promos' else '' }}">Promos</a>
+  <a href="/admin/reports" class="{{ 'active' if page == 'reports' else '' }}">Reports</a>
+  <a href="/admin/pay-qr" class="{{ 'active' if page == 'payqr' else '' }}">Pay QR</a>
+  <a href="/admin/audit" class="{{ 'active' if page == 'audit' else '' }}">Audit</a>
   <a href="/admin/logout" style="margin-left:auto">Logout</a>
 </header>
 <main>
@@ -45,10 +50,7 @@ button.danger:hover{background:#962d22}
 <h2>Discounts & promotions</h2>
 <form method=post class=c>
   <input name=name placeholder="Name (Weekend Special)" required>
-  <select name=kind>
-    <option value=percent>Percent %</option>
-    <option value=fixed>Fixed Rs.</option>
-  </select>
+  <select name=kind><option value=percent>Percent %</option><option value=fixed>Fixed Rs.</option></select>
   <input name=value placeholder=Value required size=6>
   <input name=min_order placeholder="Min order" size=8>
   <input name=max_discount placeholder="Max discount" size=8>
@@ -59,11 +61,9 @@ button.danger:hover{background:#962d22}
 <table>
   <thead><tr><th>Name</th><th>Type</th><th>Value</th><th>Min</th><th>Max</th><th>Dates</th><th>Status</th></tr></thead>
   {% for d in discounts %}
-  <tr>
-    <td>{{d.name}}</td><td>{{d.kind}}</td><td>{{d.value}}</td><td>{{d.min_order}}</td><td>{{d.max_discount or '—'}}</td>
-    <td>{{d.start.strftime('%d %b') if d.start else '…'}} → {{d.end.strftime('%d %b') if d.end else '…'}}</td>
-    <td><form method=post action=/admin/promos/{{d.id}}/toggle><button class=sec>{{'Active ✓' if d.active else 'Inactive'}}</button></form></td>
-  </tr>
+  <tr><td>{{d.name}}</td><td>{{d.kind}}</td><td>{{d.value}}</td><td>{{d.min_order}}</td><td>{{d.max_discount or '—'}}</td>
+  <td>{{d.start.strftime('%d %b') if d.start else '…'}} → {{d.end.strftime('%d %b') if d.end else '…'}}</td>
+  <td><form method=post action=/admin/promos/{{d.id}}/toggle><button class=sec>{{'Active ✓' if d.active else 'Inactive'}}</button></form></td></tr>
   {% endfor %}
 </table>
 
@@ -101,15 +101,15 @@ l.innerHTML='<b>Highest-spending customers</b><br>'+d.loyal.map(x=>x[0]+' — Rs
 {% elif page=='customer' %}
 <h2>{{c.name}} {{'(disabled)' if c.disabled}}</h2>
 <p>{{c.phone}} · joined {{c.created.strftime('%d %b %Y')}}<br>
-Orders: {{orders|length}} · Spent: Rs. {{'%.0f'|format(spent)}} · Loyalty {{loy.progress}}/{{loy.required}} · Reward available: {{loy.reward}} · Redeemed: {{redeemed}}</p>
+Orders: {{orders|length}} · Spent: Rs. {{'%.0f'|format(spent)}} · Loyalty {{loy.progress}}/{{loy.required}} · Reward: {{loy.reward}} · Redeemed: {{redeemed}}</p>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
   <form method=post action=/admin/customer/{{c.id}}/toggle>
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <button class=sec type=submit>{{'Enable' if c.disabled else 'Disable'}} account</button>
   </form>
-  <form method=post action=/admin/customer/{{c.id}}/force-logout onsubmit="return confirm('Force logout on all devices for this customer?')">
+  <form method=post action=/admin/customer/{{c.id}}/force-logout onsubmit="return confirm('Force logout on all devices?')">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <button class=sec type=submit>Force logout (all devices)</button>
+    <button class=sec type=submit>Force logout</button>
   </form>
   {% if session.role == 'superadmin' %}
   <button class=danger type=button onclick="deleteCustomer({{ c.id }}, '{{ c.name|e }}', {{ orders|length }})">Delete permanently</button>
@@ -123,11 +123,11 @@ Orders: {{orders|length}} · Spent: Rs. {{'%.0f'|format(spent)}} · Loyalty {{lo
 {% for o in orders %}<div class=c>#{{o.number}} · {{o.created.strftime('%d %b %Y')}} · Table {{o.table.name}} · Rs. {{o.total}} · {{o.status}}</div>{% endfor %}
 <script>
 async function deleteCustomer(id, name, orderCount){
-  if(!confirm(`Delete customer "${name}" permanently?\n\nThis also removes ${orderCount} order(s), payments, and loyalty history.\n\nThis CANNOT be undone.`)) return;
-  if(!confirm('Are you absolutely sure? Click OK to confirm.')) return;
+  if(!confirm(`Delete "${name}" permanently?\n\nRemoves ${orderCount} order(s), payments, and loyalty.\n\nCANNOT be undone.`)) return;
+  if(!confirm('Absolutely sure? Click OK to confirm.')) return;
   const r = await fetch(`/admin/customer/${id}/delete`, {method:'POST', headers:{'X-CSRF':'{{ csrf_token() }}'}});
   if(r.ok){ alert('Deleted.'); location.href='/admin/customers'; }
-  else if(r.status === 403){ alert('Only superadmin can delete customers.'); }
+  else if(r.status === 403){ alert('Only superadmin can delete.'); }
   else { alert('Delete failed: ' + r.status); }
 }
 </script>
@@ -197,12 +197,11 @@ function genPayQr(e){
   <a href="/admin/customers" style="text-decoration:none"><button type=button class=sec>Reset</button></a>
 </form>
 
+<p style="color:#555;font-size:14px;margin:12px 0 0"><b>Total:</b> {{ rows|length }} customer(s). <span style="color:#999;font-size:12px">Newest first.</span></p>
+
 <table>
   <thead>
-    <tr>
-      <th>ID</th><th>Name</th><th>Phone</th><th>Orders</th>
-      <th>Spent</th><th>Last order</th><th>Status</th><th style="width:260px">Actions</th>
-    </tr>
+    <tr><th>ID</th><th>Name</th><th>Phone</th><th>Orders</th><th>Spent</th><th>Last order</th><th>Status</th><th style="width:260px">Actions</th></tr>
   </thead>
   <tbody>
     {% for r in rows %}
@@ -213,10 +212,7 @@ function genPayQr(e){
         <td>{{ r.orders }}</td>
         <td>Rs. {{ '%.0f'|format(r.spent) }}</td>
         <td>{% if r.last_order %}{{ r.last_order.strftime('%d %b %Y') }}{% else %}—{% endif %}</td>
-        <td>
-          {% if r.disabled %}<span class="pill sold">Disabled</span>
-          {% else %}<span class="pill avail">Active</span>{% endif %}
-        </td>
+        <td>{% if r.disabled %}<span class="pill sold">Disabled</span>{% else %}<span class="pill avail">Active</span>{% endif %}</td>
         <td>
           <form method=post action=/admin/customer/{{ r.id }}/toggle style="display:inline">
             <input type="hidden" name="csrf" value="{{ csrf_token() }}">
@@ -241,7 +237,7 @@ function genPayQr(e){
   <b>Bulk cleanup</b>
   <p style="color:#666;font-size:13px;margin:6px 0">Delete customers with no orders in the last N days. Superadmin only.</p>
   {% if session.role == 'superadmin' %}
-  <form method=post action="/admin/customers/bulk-delete-inactive" onsubmit="return confirm('Delete all customers with no orders in the last N days? This cannot be undone.')">
+  <form method=post action="/admin/customers/bulk-delete-inactive" onsubmit="return confirm('Delete all customers with no orders in the last N days? Cannot be undone.')">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <input type=number name=days value=90 min=30 max=3650 style="width:100px"> days
     <button class=danger type=submit>Bulk delete inactive</button>
@@ -253,12 +249,12 @@ function genPayQr(e){
 
 <script>
 async function deleteCustomer(id, name, orderCount){
-  if(!confirm(`Delete customer "${name}" permanently?\n\nThis also removes ${orderCount} order(s), payments, and loyalty history.\n\nThis CANNOT be undone.`)) return;
-  if(!confirm('Are you absolutely sure? Click OK to confirm.')) return;
+  if(!confirm(`Delete "${name}" permanently?\n\nRemoves ${orderCount} order(s), payments, and loyalty.\n\nCANNOT be undone.`)) return;
+  if(!confirm('Absolutely sure? Click OK to confirm.')) return;
   const r = await fetch(`/admin/customer/${id}/delete`, {method:'POST', headers:{'X-CSRF':'{{ csrf_token() }}'}});
   const d = await r.json().catch(()=>({}));
   if(r.ok){ alert('Deleted.'); location.reload(); }
-  else if(r.status === 403){ alert('Only superadmin can delete customers.'); }
+  else if(r.status === 403){ alert('Only superadmin can delete.'); }
   else { alert('Delete failed: ' + (d.error || r.status)); }
 }
 </script>
