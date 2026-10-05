@@ -1,12 +1,13 @@
 """Extra features: promos, variants/add-ons, uploads, reports, table/customer detail,
-audit log, CSRF, rate limits, payments."""
-import os, time, uuid, secrets
+audit log, CSRF, rate limits, payments, payment-QR generator."""
+import os, time, uuid, secrets, io
 from collections import deque
 from datetime import datetime, date, timedelta, time as dtime
-from flask import request, session, redirect, jsonify, render_template, abort
+from flask import request, session, redirect, jsonify, render_template, send_file, abort
 from app import (app, db, CAFE, STATUSES, need, Order, OrderItem, Item, Category,
-                 Customer, Table, Setting, Admin, loyalty, LoyaltyTx)
+                 Customer, Table, Setting, Admin, loyalty, LoyaltyTx, now)
 from payments import PROVIDERS
+import qrcode
 
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 UP = os.path.join(app.static_folder, "uploads")
@@ -15,7 +16,7 @@ UP = os.path.join(app.static_folder, "uploads")
 class Discount(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80))
-    kind = db.Column(db.String(10))  # percent | fixed
+    kind = db.Column(db.String(10))
     value = db.Column(db.Numeric(10, 2))
     min_order = db.Column(db.Numeric(10, 2), default=0)
     max_discount = db.Column(db.Numeric(10, 2))
@@ -46,7 +47,7 @@ class Payment(db.Model):
     amount = db.Column(db.Numeric(10, 2))
     status = db.Column(db.String(10), default="pending")
     reference = db.Column(db.String(100))
-    created = db.Column(db.DateTime, default=datetime.now)
+    created = db.Column(db.DateTime, default=now)
 
 
 class AuditLog(db.Model):
@@ -54,10 +55,9 @@ class AuditLog(db.Model):
     admin_id = db.Column(db.Integer)
     action = db.Column(db.String(200))
     ip = db.Column(db.String(45))
-    created = db.Column(db.DateTime, default=datetime.now, index=True)
+    created = db.Column(db.DateTime, default=now, index=True)
 
 
-# ---------- CSRF + rate limiting + audit ----------
 @app.context_processor
 def _ctx():
     def csrf_token():
@@ -72,20 +72,22 @@ LIMITS = {"/admin/login": (10, 300), "/join": (20, 60), "/api/order": (20, 60)}
 
 @app.before_request
 def guard():
+    session.setdefault("csrf", secrets.token_urlsafe(24))
     p = request.path
     if p.startswith("/api/print/") or p.startswith("/api/payments/") or request.method != "POST":
         return
     if p in LIMITS:
         n, win = LIMITS[p]
         q = _hits.setdefault((p, request.remote_addr), deque())
-        now = time.time()
-        while q and q[0] < now - win:
+        t = time.time()
+        while q and q[0] < t - win:
             q.popleft()
         if len(q) >= n:
             return "Too many requests — slow down.", 429
-        q.append(now)
+        q.append(t)
     tok = session.get("csrf", "")
-    if not tok or not secrets.compare_digest(tok, request.form.get("csrf") or request.headers.get("X-CSRF", "")):
+    sent = request.form.get("csrf") or request.headers.get("X-CSRF", "")
+    if not tok or not secrets.compare_digest(tok, sent):
         abort(400, "CSRF check failed")
 
 
@@ -98,7 +100,6 @@ def audit(resp):
     return resp
 
 
-# ---------- ordering helpers ----------
 def opts(i):
     return {
         "variants": [{"id": v.id, "name": v.name, "delta": float(v.delta)}
@@ -133,10 +134,10 @@ def build_lines(rows):
 
 
 def best_promo(sub, bycat):
-    now = datetime.now()
+    t = now()
     best = (None, 0.0)
     for d in Discount.query.filter_by(active=True):
-        if (d.start and d.start > now) or (d.end and d.end < now) or sub < float(d.min_order or 0):
+        if (d.start and d.start > t) or (d.end and d.end < t) or sub < float(d.min_order or 0):
             continue
         base = bycat.get(d.category_id, 0) if d.category_id else sub
         amt = base * float(d.value) / 100 if d.kind == "percent" else (float(d.value) if base else 0)
@@ -158,7 +159,6 @@ def day(s, end=False):
     return d + timedelta(days=1, seconds=-1) if end else d
 
 
-# ---------- menu: image upload, variants, add-ons ----------
 @app.post("/admin/item")
 @need("manager")
 def save_item():
@@ -206,7 +206,6 @@ def add_option(iid, kind):
     return redirect(f"/admin/item/{iid}/options")
 
 
-# ---------- promotions ----------
 @app.get("/admin/promos")
 @need("manager")
 def promos():
@@ -240,7 +239,6 @@ def toggle_promo(did):
     return redirect("/admin/promos")
 
 
-# ---------- reports ----------
 @app.get("/admin/reports")
 @need("manager")
 def reports():
@@ -250,7 +248,7 @@ def reports():
 @app.get("/admin/api/reports")
 @need("manager")
 def reports_api():
-    today = date.today()
+    today = now().date()
     ok = Order.query.filter(Order.status != "cancelled").all()
     s = lambda f: round(sum(float(o.total) for o in ok if f(o.created.date())), 2)
     days = [today - timedelta(d) for d in range(13, -1, -1)]
@@ -281,7 +279,6 @@ def reports_api():
     )
 
 
-# ---------- tables & customers ----------
 LIVE = ["new", "accepted", "preparing", "ready", "served"]
 
 
@@ -350,17 +347,50 @@ def audit_page():
     return page("audit", logs=AuditLog.query.order_by(AuditLog.id.desc()).limit(200), names=names)
 
 
-# ---------- payments ----------
+@app.get("/admin/pay-qr")
+@need("manager")
+def pay_qr_page():
+    return page("payqr")
+
+
+@app.get("/admin/pay-qr/<int:amount>.png")
+@need("manager")
+def pay_qr_png(amount):
+    note = request.args.get("note", "")[:80]
+    payload = f"{CAFE}\nAmount: Rs. {amount}\n{note}\nPay at counter"
+    buf = io.BytesIO()
+    qrcode.make(payload, box_size=12).save(buf, "PNG")
+    buf.seek(0)
+    return send_file(buf, mimetype="image/png",
+                     download_name=f"pay-{amount}.png")
+
+
 @app.post("/admin/order/<int:oid>/pay")
 @need()
 def mark_paid(oid):
     o = db.session.get(Order, oid)
     o.payment_status = "paid"
+
     p = Payment.query.filter_by(order_id=oid).first() or Payment(order_id=oid, method="cash", amount=o.total)
     p.status = "paid"
     db.session.add(p)
+
+    t = db.session.get(Table, o.table_id)
+    rotated = False
+    if t:
+        still_open = Order.query.filter(
+            Order.table_id == t.id,
+            Order.id != o.id,
+            Order.status.notin_(["completed", "cancelled"]),
+        ).count()
+        if still_open == 0:
+            t.token = secrets.token_urlsafe(8)
+            t.status = "available"
+            rotated = True
+
     db.session.commit()
-    return jsonify(ok=True)
+    return jsonify(ok=True, rotated=rotated,
+                   new_token=t.token if rotated and t else None)
 
 
 @app.post("/api/payments/<name>/callback")
@@ -377,3 +407,26 @@ def pay_callback(name):
     db.session.add(Payment(order_id=oid, method=name, amount=o.total, status="paid", reference=ref))
     db.session.commit()
     return jsonify(ok=True)
+
+
+
+# ---------- TEMPORARY: seed trigger (remove after use) ----------
+@app.get("/admin/seed/<secret>")
+@need("manager")
+def trigger_seed(secret):
+    if secret != "please-seed-now-2025":
+        abort(404)
+    try:
+        import seed_data
+        seed_data.run()
+        from app import Category, Item
+        return (
+            "<h2>Seed complete</h2>"
+            f"<p>Categories: {Category.query.count()}</p>"
+            f"<p>Items: {Item.query.count()}</p>"
+            "<p><a href='/admin'>Back to dashboard</a> · "
+            "<a href='/admin/qr-sheet'>QR sheet</a></p>"
+        )
+    except Exception:
+        import traceback
+        return f"<pre>{traceback.format_exc()}</pre>", 500
