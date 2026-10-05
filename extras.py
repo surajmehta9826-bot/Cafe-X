@@ -6,7 +6,7 @@ from datetime import datetime, date, timedelta, time as dtime
 from flask import request, session, redirect, jsonify, render_template, send_file, abort
 from app import (app, db, CAFE, STATUSES, need, Order, OrderItem, Item, Category,
                  Customer, Table, Setting, Admin, loyalty, LoyaltyTx, now,
-                 free_table_if_done)
+                 free_table_if_done, PrintJob)
 from payments import PROVIDERS
 import qrcode
 
@@ -501,19 +501,14 @@ def mark_paid(oid):
     if not o:
         abort(404)
 
-    # 1. Mark payment as paid
     o.payment_status = "paid"
-
-    # 2. Complete the order automatically
     if o.status not in ("completed", "cancelled"):
         o.status = "completed"
 
-    # 3. Payment record
     p = Payment.query.filter_by(order_id=oid).first() or Payment(order_id=oid, method="cash", amount=o.total)
     p.status = "paid"
     db.session.add(p)
 
-    # 4. Free the table if no other live orders remain
     t = free_table_if_done(o.table_id)
     rotated = t is not None
 
