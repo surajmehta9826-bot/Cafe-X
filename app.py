@@ -88,6 +88,7 @@ class Item(db.Model):
     veg = db.Column(db.Boolean, default=True)
     available = db.Column(db.Boolean, default=True)
     featured = db.Column(db.Boolean, default=False)
+    category = db.relationship("Category")   # ← THE FIX
 
 
 class Order(db.Model):
@@ -451,7 +452,7 @@ def admin():
         stats=stats,
         tables=Table.query.all(),
         cats=Category.query.all(),
-        items=Item.query.all(),
+        items=Item.query.order_by(Item.category_id, Item.name).all(),
         customers=Customer.query.all(),
         cfg={k: setting(k) for k in LOYALTY_DEFAULTS},
         failed=PrintJob.query.filter_by(status="failed").count(),
