@@ -1,12 +1,17 @@
-"""Entry point. Run:  python main.py     Production:  gunicorn main:app"""
+﻿"""Entry point. Dev: python main.py.   Production (Render): gunicorn main:app"""
 from dotenv import load_dotenv
-load_dotenv()                      # MUST run before importing app
+load_dotenv()
 
-from app import app, seed          # noqa: E402
-import extras                      # noqa: F401,E402  registers promos, reports, etc.
+from app import app, seed
+import extras
+
+try:
+    with app.app_context():
+        seed()
+except Exception as e:
+    print(f"[main] seed skipped: {e}", flush=True)
 
 if __name__ == "__main__":
     import os
-    with app.app_context():
-        seed()
-    app.run(host="0.0.0.0", port=5000, debug=os.getenv("FLASK_DEBUG") == "1")
+    port = int(os.getenv("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port, debug=os.getenv("FLASK_DEBUG") == "1")

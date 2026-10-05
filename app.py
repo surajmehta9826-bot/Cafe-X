@@ -1,5 +1,5 @@
-import os, io, secrets
-from datetime import datetime, date, timedelta
+﻿import os, io, secrets
+from datetime import datetime, date, timedelta, timezone
 from functools import wraps
 from flask import Flask, request, session, redirect, jsonify, render_template, send_file, abort
 from flask_sqlalchemy import SQLAlchemy
@@ -7,15 +7,25 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import qrcode
 
 app = Flask(__name__)
+
+CAFE_TZ = float(os.getenv("CAFE_TZ_OFFSET", "5.75"))
+LOCAL_TZ = timezone(timedelta(hours=CAFE_TZ))
+
+
+def now():
+    return datetime.now(LOCAL_TZ).replace(tzinfo=None)
+
+
+IS_PROD = bool(os.getenv("RENDER")) or os.getenv("FLASK_DEBUG", "0") != "1"
+
 app.config.update(
     SECRET_KEY=os.getenv("SECRET_KEY", "dev-change-me"),
-    SQLALCHEMY_DATABASE_URI=os.getenv(
-        "DATABASE_URL",
-        "mysql+pymysql://root:1234abc@localhost:3307/cafe_x?charset=utf8mb4",
-    ),
+    SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///./cafe_x.db"),
     SQLALCHEMY_ENGINE_OPTIONS={"pool_pre_ping": True, "pool_recycle": 280},
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=IS_PROD,
+    PERMANENT_SESSION_LIFETIME=timedelta(days=7),
 )
 db = SQLAlchemy(app)
 
@@ -27,10 +37,10 @@ STATUSES = ["new", "accepted", "preparing", "ready", "served", "completed", "can
 MSG = {
     "new": "Order received",
     "accepted": "Order accepted",
-    "preparing": "Being prepared 👨‍🍳",
-    "ready": "Ready! 🎉",
+    "preparing": "Being prepared",
+    "ready": "Ready!",
     "served": "Served",
-    "completed": "Thank you for dining with us ❤️",
+    "completed": "Thank you for dining with us",
     "cancelled": "Cancelled",
 }
 
@@ -39,7 +49,7 @@ class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True)
     pw_hash = db.Column(db.String(255))
-    role = db.Column(db.String(20), default="staff")  # superadmin / manager / staff
+    role = db.Column(db.String(20), default="staff")
 
 
 class Table(db.Model):
@@ -55,7 +65,7 @@ class Customer(db.Model):
     name = db.Column(db.String(80))
     phone = db.Column(db.String(20), unique=True, index=True)
     disabled = db.Column(db.Boolean, default=False)
-    created = db.Column(db.DateTime, default=datetime.now)
+    created = db.Column(db.DateTime, default=now)
 
 
 class Category(db.Model):
@@ -87,7 +97,7 @@ class Order(db.Model):
     promo_name = db.Column(db.String(80))
     payment_status = db.Column(db.String(10), default="unpaid")
     status = db.Column(db.String(20), default="new", index=True)
-    created = db.Column(db.DateTime, default=datetime.now, index=True)
+    created = db.Column(db.DateTime, default=now, index=True)
     customer = db.relationship("Customer")
     table = db.relationship("Table")
     items = db.relationship("OrderItem", backref="order")
@@ -111,7 +121,7 @@ class PrintJob(db.Model):
     status = db.Column(db.String(12), default="pending", index=True)
     attempts = db.Column(db.Integer, default=0)
     error = db.Column(db.Text)
-    updated = db.Column(db.DateTime, default=datetime.now)
+    updated = db.Column(db.DateTime, default=now)
 
 
 class Setting(db.Model):
@@ -124,7 +134,7 @@ class LoyaltyTx(db.Model):
     customer_id = db.Column(db.ForeignKey("customer.id"), index=True)
     delta = db.Column(db.Integer)
     note = db.Column(db.String(200))
-    created = db.Column(db.DateTime, default=datetime.now)
+    created = db.Column(db.DateTime, default=now)
 
 
 LOYALTY_DEFAULTS = {"orders_required": "10", "percent": "50", "max_discount": "500", "min_order": "500"}
@@ -161,7 +171,43 @@ def ticket(o):
     return "\n".join(L)
 
 
-# ---------- customer ----------
+_bootstrapped = False
+
+
+@app.before_request
+def _bootstrap():
+    global _bootstrapped
+    if _bootstrapped:
+        return
+    try:
+        db.create_all()
+        if not Admin.query.first():
+            db.session.add(Admin(
+                username="admin",
+                pw_hash=generate_password_hash(os.getenv("ADMIN_PASSWORD", "admin123")),
+                role="superadmin",
+            ))
+            db.session.add_all([Table(name=str(n)) for n in range(1, 6)])
+            k = Category(name="Coffee", sort=1)
+            db.session.add(k)
+            db.session.flush()
+            db.session.add(Item(category_id=k.id, name="Cold Coffee",
+                                description="Iced, creamy, smooth.", price=200, featured=True))
+        for k, v in LOYALTY_DEFAULTS.items():
+            if not db.session.get(Setting, k):
+                db.session.add(Setting(key=k, value=v))
+        db.session.commit()
+        _bootstrapped = True
+    except Exception as e:
+        print(f"[bootstrap] {e}", flush=True)
+        db.session.rollback()
+
+
+@app.get("/healthz")
+def healthz():
+    return jsonify(status="ok"), 200
+
+
 @app.route("/")
 def home():
     return redirect("/menu")
@@ -247,7 +293,6 @@ def order_status(oid):
     return jsonify(status=o.status, message=MSG[o.status])
 
 
-# ---------- admin ----------
 def need(*roles):
     def deco(f):
         @wraps(f)
@@ -268,6 +313,7 @@ def login():
         if a and check_password_hash(a.pw_hash, request.form["password"]):
             session.clear()
             session.update(aid=a.id, role=a.role)
+            session.permanent = True
             return redirect("/admin")
         return render_template("login.html", cafe=CAFE, err="Wrong credentials")
     return render_template("login.html", cafe=CAFE, err="")
@@ -282,7 +328,7 @@ def logout():
 @app.get("/admin")
 @need()
 def admin():
-    start = datetime.combine(date.today(), datetime.min.time())
+    start = datetime.combine(now().date(), datetime.min.time())
     today = Order.query.filter(Order.created >= start)
     stats = {
         "orders": today.count(),
@@ -308,7 +354,7 @@ def admin_orders():
         "customer": o.customer.name, "phone": o.customer.phone,
         "total": float(o.total), "discount": float(o.discount), "status": o.status,
         "time": o.created.strftime("%I:%M %p"), "paid": o.payment_status,
-        "promo": o.promo_name, "items": [f"{i.qty} × {i.name}" for i in o.items]
+        "promo": o.promo_name, "items": [f"{i.qty} x {i.name}" for i in o.items]
     } for o in q.limit(60)])
 
 
@@ -381,7 +427,6 @@ def save_loyalty():
     return redirect("/admin#loyalty")
 
 
-# ---------- print queue ----------
 def bridge_auth():
     if not secrets.compare_digest(request.headers.get("X-Print-Key", ""), PRINT_KEY):
         abort(401)
@@ -390,12 +435,12 @@ def bridge_auth():
 @app.get("/api/print/next")
 def print_next():
     bridge_auth()
-    stale = datetime.now() - timedelta(seconds=60)
+    stale = now() - timedelta(seconds=60)
     PrintJob.query.filter(PrintJob.status == "printing", PrintJob.updated < stale).update({"status": "pending"})
     j = PrintJob.query.filter_by(status="pending").order_by(PrintJob.id).first()
     if not j:
         return jsonify(job=None)
-    j.status, j.attempts, j.updated = "printing", j.attempts + 1, datetime.now()
+    j.status, j.attempts, j.updated = "printing", j.attempts + 1, now()
     db.session.commit()
     return jsonify(job={"id": j.id, "text": ticket(db.session.get(Order, j.order_id))})
 
@@ -409,7 +454,7 @@ def print_result(jid, result):
     else:
         j.status = "failed" if j.attempts >= 5 else "pending"
         j.error = (request.get_json(silent=True) or {}).get("error")
-    j.updated = datetime.now()
+    j.updated = now()
     db.session.commit()
     return jsonify(ok=True)
 
@@ -423,7 +468,7 @@ def seed():
             role="superadmin",
         ))
         db.session.add_all([Table(name=str(n)) for n in range(1, 6)])
-        k = Category(name="☕ Coffee", sort=1)
+        k = Category(name="Coffee", sort=1)
         db.session.add(k)
         db.session.flush()
         db.session.add(Item(category_id=k.id, name="Cold Coffee",
