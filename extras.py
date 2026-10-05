@@ -302,7 +302,6 @@ LIVE = ["new", "accepted", "preparing", "ready", "served"]
 @app.get("/admin/tables")
 @need("manager")
 def tables_status():
-    """Table overview with per-state counts for the dashboard."""
     rows = []
     counts = {"free": 0, "occupied": 0, "locked": 0, "disabled": 0, "reserved": 0, "cleaning": 0}
 
@@ -328,6 +327,65 @@ def tables_status():
         rows.append((t, state, cur))
 
     return page("tables", rows=rows, counts=counts)
+
+
+@app.get("/admin/api/tables/status")
+@need("manager")
+def tables_status_api():
+    """Lightweight JSON feed for the auto-refresh loop."""
+    rows = []
+    counts = {"free": 0, "occupied": 0, "locked": 0, "disabled": 0, "reserved": 0, "cleaning": 0}
+
+    for t in Table.query.all():
+        cur = Order.query.filter(
+            Order.table_id == t.id, Order.status.in_(LIVE)
+        ).order_by(Order.id.desc()).first()
+
+        if not t.active:
+            state = "disabled"
+        elif cur:
+            state = "occupied"
+        elif t.locked_to_customer_id:
+            state = "locked"
+        elif t.status == "reserved":
+            state = "reserved"
+        elif t.status == "cleaning":
+            state = "cleaning"
+        else:
+            state = "free"
+
+        counts[state] = counts.get(state, 0) + 1
+
+        row = {
+            "id": t.id,
+            "name": t.name,
+            "state": state,
+            "active": t.active,
+            "locked_to_customer_id": t.locked_to_customer_id,
+        }
+
+        if cur:
+            elapsed_min = int((now() - cur.created).total_seconds() / 60)
+            row["order"] = {
+                "id": cur.id,
+                "number": cur.number,
+                "customer_name": cur.customer.name,
+                "total": float(cur.total),
+                "elapsed_min": elapsed_min,
+            }
+        else:
+            row["order"] = None
+
+        rows.append(row)
+
+    max_order_id = db.session.query(db.func.coalesce(db.func.max(Order.id), 0)).scalar() or 0
+
+    return jsonify(
+        counts=counts,
+        rows=rows,
+        max_order_id=int(max_order_id),
+        server_time=now().strftime("%I:%M:%S %p"),
+    )
 
 
 @app.get("/admin/table/<int:tid>")
