@@ -147,6 +147,17 @@
     .pill.avail { background: #d4edda; color: #1a6b1a; }
     .pill.sold { background: #f8d7da; color: #8b1a1a; }
     .pill.feat { background: #fde8c6; color: #8b5a2b; }
+
+    /* ---------- Table lock warning ---------- */
+    .lock-warning {
+      background: #fff6e0;
+      border-left: 4px solid #c9965a;
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-size: 14px;
+      color: #5b3d1a;
+    }
   </style>
 </head>
 
@@ -255,15 +266,12 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <script>
-      // Fetch report data and render
       fetch('/admin/api/reports')
         .then((r) => r.json())
         .then((data) => {
-          // Helper to make a small stat card
           const card = (title, value) =>
             `<div class="card"><small>${title}</small><h3>${value}</h3></div>`;
 
-          // Render top summary cards
           document.getElementById('reports-cards').innerHTML =
             card('7 days', 'Rs. ' + data.week) +
             card('This month', 'Rs. ' + data.month) +
@@ -274,7 +282,6 @@
             card('Orders by status',
               Object.entries(data.status).map((e) => e.join(': ')).join(' · '));
 
-          // Sales chart
           new Chart(document.getElementById('chart-sales'), {
             type: 'line',
             data: {
@@ -287,7 +294,6 @@
             }
           });
 
-          // Most ordered items chart
           new Chart(document.getElementById('chart-top'), {
             type: 'bar',
             data: {
@@ -300,7 +306,6 @@
             }
           });
 
-          // Top-spending customers list
           document.getElementById('reports-loyal').innerHTML =
             '<b>Highest-spending customers</b><br>' +
             data.loyal.map((x) => x[0] + ' — Rs. ' + x[1]).join('<br>');
@@ -308,7 +313,7 @@
     </script>
 
   {# ============================================================
-     AUDIT LOG PAGE
+     AUDIT LOG
   ============================================================ #}
   {% elif page == 'audit' %}
     <h2>Admin activity log</h2>
@@ -358,18 +363,32 @@
     </table>
 
   {# ============================================================
-     SINGLE TABLE DETAIL
+     SINGLE TABLE DETAIL  (with Force unlock)
   ============================================================ #}
   {% elif page == 'table' %}
     <h2>Table {{ t.name }}</h2>
 
-    <form method="post" action="/admin/table/{{ t.id }}/status">
+    {% if t.locked_to_customer_id %}
+      <div class="lock-warning">
+        <b>🔒 Table locked</b> to customer #{{ t.locked_to_customer_id }}.
+        It will unlock automatically when their order is completed or cancelled.
+      </div>
+    {% endif %}
+
+    <form method="post" action="/admin/table/{{ t.id }}/status" style="display: inline-block">
       <select name="status">
         {% for s in ['available', 'reserved', 'cleaning', 'disabled'] %}
           <option {{ 'selected' if s == t.status }}>{{ s }}</option>
         {% endfor %}
       </select>
       <button>Set status</button>
+    </form>
+
+    <form method="post" action="/admin/table/{{ t.id }}/unlock"
+          style="display: inline-block; margin-left: 8px"
+          onsubmit="return confirm('Force unlock this table?\n\nThe current customer will need to scan again.')">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="danger" type="submit">🔓 Force unlock</button>
     </form>
 
     {% for o in orders %}

@@ -1,5 +1,5 @@
 """Extra features: promos, variants/add-ons, uploads, reports, table/customer detail,
-audit log, CSRF, rate limits, payments, payment-QR generator."""
+audit log, CSRF, rate limits, payments, payment-QR generator, customer management."""
 import os, time, uuid, secrets, io
 from collections import deque
 from datetime import datetime, date, timedelta, time as dtime
@@ -160,6 +160,10 @@ def day(s, end=False):
     return d + timedelta(days=1, seconds=-1) if end else d
 
 
+# ============================================================
+#   ITEMS
+# ============================================================
+
 @app.post("/admin/item")
 @need("manager")
 def save_item():
@@ -207,6 +211,10 @@ def add_option(iid, kind):
     return redirect(f"/admin/item/{iid}/options")
 
 
+# ============================================================
+#   PROMOS
+# ============================================================
+
 @app.get("/admin/promos")
 @need("manager")
 def promos():
@@ -239,6 +247,10 @@ def toggle_promo(did):
     db.session.commit()
     return redirect("/admin/promos")
 
+
+# ============================================================
+#   REPORTS
+# ============================================================
 
 @app.get("/admin/reports")
 @need("manager")
@@ -280,6 +292,10 @@ def reports_api():
     )
 
 
+# ============================================================
+#   TABLES
+# ============================================================
+
 LIVE = ["new", "accepted", "preparing", "ready", "served"]
 
 
@@ -313,9 +329,9 @@ def table_status(tid):
     return redirect(f"/admin/table/{tid}")
 
 
-# ==========================================================
-#   CUSTOMER MANAGEMENT
-# ==========================================================
+# ============================================================
+#   CUSTOMERS
+# ============================================================
 
 @app.get("/admin/customers")
 @need("manager")
@@ -416,6 +432,7 @@ def customer_force_logout(cid):
     if not c:
         return jsonify(error="Customer not found"), 404
     c.session_key = secrets.token_urlsafe(8)
+    c.device_token = None      # invalidate device cookie too
     db.session.commit()
     return jsonify(ok=True, new_key=c.session_key)
 
@@ -459,6 +476,10 @@ def bulk_delete_inactive():
     return redirect("/admin/customers?deleted=" + str(deleted))
 
 
+# ============================================================
+#   AUDIT
+# ============================================================
+
 @app.get("/admin/audit")
 @need()
 def audit_page():
@@ -468,9 +489,9 @@ def audit_page():
     return page("audit", logs=AuditLog.query.order_by(AuditLog.id.desc()).limit(200), names=names)
 
 
-# ==========================================================
+# ============================================================
 #   PAYMENT QR
-# ==========================================================
+# ============================================================
 
 @app.get("/admin/pay-qr")
 @need("manager")
@@ -490,9 +511,9 @@ def pay_qr_png(amount):
                      download_name=f"pay-{amount}.png")
 
 
-# ==========================================================
-#   MARK PAID — completes order + frees table
-# ==========================================================
+# ============================================================
+#   MARK PAID
+# ============================================================
 
 @app.post("/admin/order/<int:oid>/pay")
 @need()
@@ -536,9 +557,9 @@ def pay_callback(name):
     return jsonify(ok=True)
 
 
-# ==========================================================
-#   TEMPORARY: seed trigger (remove after use)
-# ==========================================================
+# ============================================================
+#   TEMPORARY — SEED + CLEANUP (remove after use)
+# ============================================================
 
 @app.get("/admin/seed/<secret>")
 @need("manager")
@@ -561,10 +582,6 @@ def trigger_seed(secret):
         return f"<pre>{traceback.format_exc()}</pre>", 500
 
 
-# ==========================================================
-#   TEMPORARY: cleanup paid-but-open orders + free tables
-# ==========================================================
-
 @app.get("/admin/cleanup/close-paid-orders")
 @need("manager")
 def cleanup_paid_orders():
@@ -583,8 +600,9 @@ def cleanup_paid_orders():
             Order.table_id == t.id,
             Order.status.in_(["new", "accepted", "preparing", "ready", "served"])
         ).count()
-        if live == 0 and t.status != "available":
+        if live == 0 and (t.status != "available" or t.locked_to_customer_id):
             t.status = "available"
+            t.locked_to_customer_id = None
             freed += 1
     db.session.commit()
     return f"Completed {fixed} paid orders; freed {freed} tables."

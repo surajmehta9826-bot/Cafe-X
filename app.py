@@ -48,6 +48,10 @@ MSG = {
 }
 
 
+# ============================================================
+#   MODELS
+# ============================================================
+
 class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True)
@@ -61,6 +65,8 @@ class Table(db.Model):
     status = db.Column(db.String(20), default="available")
     token = db.Column(db.String(32), unique=True, default=lambda: secrets.token_urlsafe(8))
     active = db.Column(db.Boolean, default=True)
+    # Locked to one customer while they have an open order
+    locked_to_customer_id = db.Column(db.Integer, nullable=True)
 
 
 class Customer(db.Model):
@@ -69,6 +75,7 @@ class Customer(db.Model):
     phone = db.Column(db.String(20), unique=True, index=True)
     disabled = db.Column(db.Boolean, default=False)
     session_key = db.Column(db.String(32), default=lambda: secrets.token_urlsafe(8))
+    device_token = db.Column(db.String(64), unique=True, nullable=True)
     created = db.Column(db.DateTime, default=now)
 
 
@@ -145,13 +152,16 @@ class LoyaltyTx(db.Model):
 LOYALTY_DEFAULTS = {"orders_required": "10", "percent": "50", "max_discount": "500", "min_order": "500"}
 
 
+# ============================================================
+#   HELPERS
+# ============================================================
+
 def setting(k):
     s = db.session.get(Setting, k)
     return float(s.value if s else LOYALTY_DEFAULTS[k])
 
 
 def loyalty(c):
-    # Guard against division by zero if settings are misconfigured
     req = int(setting("orders_required")) or 1
     done = Order.query.filter_by(customer_id=c.id, status="completed").count() + int(
         db.session.query(db.func.coalesce(db.func.sum(LoyaltyTx.delta), 0))
@@ -164,6 +174,8 @@ def loyalty(c):
 
 
 def free_table_if_done(table_id):
+    """If no live orders remain on this table, free it: status available,
+    rotate token, clear lock."""
     still_open = Order.query.filter(
         Order.table_id == table_id,
         Order.status.in_(["new", "accepted", "preparing", "ready", "served"]),
@@ -173,6 +185,7 @@ def free_table_if_done(table_id):
         if t:
             t.status = "available"
             t.token = secrets.token_urlsafe(8)
+            t.locked_to_customer_id = None
             return t
     return None
 
@@ -192,7 +205,6 @@ def ticket(o):
 
 
 def serialize_order(o):
-    """Shared helper for admin_orders and admin_orders_stream."""
     return {
         "id": o.id,
         "number": o.number,
@@ -208,6 +220,26 @@ def serialize_order(o):
         "items": [f"{i.qty} x {i.name}" for i in o.items],
     }
 
+
+def resolve_customer():
+    """Identify the current customer from session OR device_token cookie."""
+    c = db.session.get(Customer, session.get("cid", 0))
+    if c and not c.disabled:
+        return c
+    # Fallback: device token cookie
+    token = request.cookies.get("device_token")
+    if token:
+        c = Customer.query.filter_by(device_token=token, disabled=False).first()
+        if c:
+            session["cid"] = c.id
+            session["ckey"] = c.session_key
+            return c
+    return None
+
+
+# ============================================================
+#   BOOTSTRAP
+# ============================================================
 
 _bootstrapped = False
 
@@ -250,6 +282,10 @@ def _bootstrap():
         db.session.rollback()
 
 
+# ============================================================
+#   HEALTH + HOME
+# ============================================================
+
 @app.get("/healthz")
 def healthz():
     return jsonify(status="ok"), 200
@@ -260,16 +296,28 @@ def home():
     return redirect("/menu")
 
 
+# ============================================================
+#   CUSTOMER FLOW — MENU, JOIN, LOGOUT
+# ============================================================
+
 @app.route("/menu")
 def menu():
     t = request.args.get("t")
+
+    # Step 1: identify the customer
+    c = resolve_customer()
+
+    # Step 2: handle QR scan
     if t:
         tb = Table.query.filter_by(token=t, active=True).first()
         if not tb:
             return "Invalid or inactive table QR code.", 404
 
-        # Update the table in the session. The customer identity (cid/ckey)
-        # belongs to the person, not the table — so we do NOT clear it here.
+        # Lock check: table locked to a DIFFERENT customer?
+        if tb.locked_to_customer_id and (not c or tb.locked_to_customer_id != c.id):
+            return render_template("table_locked.html", cafe=CAFE, table=tb), 403
+
+        # OK — update session table
         session["table_id"] = tb.id
         session["table_token"] = tb.token
 
@@ -277,10 +325,7 @@ def menu():
     if not tb:
         return "Please scan the QR code on your table.", 400
 
-    c = db.session.get(Customer, session.get("cid", 0))
-
-    # Force-logout check: if the admin rotated this customer's session_key,
-    # invalidate the current session.
+    # Force-logout check
     if c and session.get("ckey") and c.session_key and session["ckey"] != c.session_key:
         session.pop("cid", None)
         session.pop("ckey", None)
@@ -289,34 +334,78 @@ def menu():
     return render_template("menu.html", cafe=CAFE, table=tb, customer=c)
 
 
-@app.get("/logout-customer")
-def logout_customer():
-    session.pop("cid", None)
-    session.pop("ckey", None)
-    session.pop("table_id", None)
-    session.pop("table_token", None)
-    return redirect("/menu")
-
-
 @app.post("/join")
 def join():
     name = request.form.get("name", "").strip()[:80]
     phone = "".join(ch for ch in request.form.get("phone", "") if ch.isdigit() or ch == "+")
     if not name or len(phone) < 7:
         return "Enter a valid name and phone.", 400
-    c = Customer.query.filter_by(phone=phone).first() or Customer(name=name, phone=phone)
-    if c.name != name and name:
+
+    c = Customer.query.filter_by(phone=phone).first()
+    if not c:
+        c = Customer(name=name, phone=phone)
+    elif c.name != name and name:
         c.name = name
+
     if c.disabled:
         return "Account disabled.", 403
+
     if not c.session_key:
         c.session_key = secrets.token_urlsafe(8)
+    if not c.device_token:
+        c.device_token = secrets.token_urlsafe(32)
+
+    # Lock the table to this customer if not already locked to someone else
+    tb = db.session.get(Table, session.get("table_id", 0))
+    if tb:
+        if tb.locked_to_customer_id and tb.locked_to_customer_id != c.id:
+            return render_template("table_locked.html", cafe=CAFE, table=tb), 403
+        tb.locked_to_customer_id = c.id
+
     db.session.add(c)
     db.session.commit()
+
     session["cid"] = c.id
     session["ckey"] = c.session_key
-    return redirect("/menu")
 
+    # Set long-lived device token cookie
+    resp = redirect("/menu")
+    resp.set_cookie(
+        "device_token", c.device_token,
+        max_age=365 * 24 * 3600,
+        httponly=True,
+        samesite="Lax",
+        secure=IS_PROD,
+    )
+    return resp
+
+
+@app.get("/logout-customer")
+def logout_customer():
+    # If this customer had locked a table but has no open orders, unlock it
+    tb = db.session.get(Table, session.get("table_id", 0))
+    if tb and tb.locked_to_customer_id == session.get("cid"):
+        still_open = Order.query.filter(
+            Order.table_id == tb.id,
+            Order.status.in_(["new", "accepted", "preparing", "ready", "served"]),
+        ).count()
+        if still_open == 0:
+            tb.locked_to_customer_id = None
+            db.session.commit()
+
+    session.pop("cid", None)
+    session.pop("ckey", None)
+    session.pop("table_id", None)
+    session.pop("table_token", None)
+
+    resp = redirect("/menu")
+    resp.set_cookie("device_token", "", expires=0)   # clear device cookie too
+    return resp
+
+
+# ============================================================
+#   CUSTOMER API
+# ============================================================
 
 @app.get("/api/menu")
 def api_menu():
@@ -357,6 +446,7 @@ def place_order():
     db.session.add(PrintJob(order_id=o.id))
     db.session.add(extras.Payment(order_id=o.id, method="cash", amount=o.total))
     tb.status = "occupied"
+    tb.locked_to_customer_id = c.id    # enforce lock
     db.session.commit()
     return jsonify(id=o.id, number=o.number, total=float(o.total))
 
@@ -382,16 +472,12 @@ def add_to_order(oid):
     all_items = OrderItem.query.filter_by(order_id=o.id).all()
     o.subtotal = float(sum(i.price * i.qty for i in all_items))
     promo, disc = extras.best_promo(float(o.subtotal), {})
-
-    # Handle loyalty reward if applied on the top-up
     if data.get("use_reward") and loyalty(c)["reward"] and o.subtotal >= setting("min_order"):
-        extra_disc = min(
+        disc += min(
             (o.subtotal - disc) * int(setting("percent")) / 100,
             setting("max_discount")
         )
-        disc += extra_disc
         o.reward_used = True
-
     o.discount = min(disc, float(o.subtotal))
     o.total = float(o.subtotal) - float(o.discount)
     o.promo_name = promo
@@ -404,11 +490,7 @@ def order_status(oid):
     o = db.session.get(Order, oid)
     if not o or o.customer_id != session.get("cid"):
         abort(404)
-    return jsonify(
-        status=o.status,
-        message=MSG[o.status],
-        payment_status=o.payment_status,
-    )
+    return jsonify(status=o.status, message=MSG[o.status], payment_status=o.payment_status)
 
 
 @app.get("/api/my-orders")
@@ -432,26 +514,13 @@ def my_orders():
     } for o in rows])
 
 
-def need(*roles):
-    def deco(f):
-        @wraps(f)
-        def w(*a, **k):
-            if "aid" not in session:
-                return redirect("/admin/login")
-            if roles and session["role"] not in roles and session["role"] != "superadmin":
-                abort(403)
-            return f(*a, **k)
-        return w
-    return deco
-
-
-# ==========================================================
+# ============================================================
 #   CUSTOMER PROFILE
-# ==========================================================
+# ============================================================
 
 @app.get("/profile")
 def profile():
-    c = db.session.get(Customer, session.get("cid", 0))
+    c = resolve_customer()
     if not c:
         return redirect("/menu")
 
@@ -466,7 +535,7 @@ def profile():
     total_spent = float(sum(o.total for o in completed))
 
     loy = loyalty(c)
-    required = loy["required"] or 1          # guard against zero
+    required = loy["required"] or 1
     completed_count = loy["completed"]
     tokens_earned = completed_count // required
     tokens_used = Order.query.filter(
@@ -479,8 +548,7 @@ def profile():
 
     fav_rows = (db.session.query(OrderItem.name, db.func.sum(OrderItem.qty))
                 .join(Order, Order.id == OrderItem.order_id)
-                .filter(Order.customer_id == c.id,
-                        Order.status == "completed")
+                .filter(Order.customer_id == c.id, Order.status == "completed")
                 .group_by(OrderItem.name)
                 .order_by(db.func.sum(OrderItem.qty).desc())
                 .limit(5).all())
@@ -503,9 +571,22 @@ def profile():
                            favorites=favorites)
 
 
-# ==========================================================
+# ============================================================
 #   ADMIN AUTH
-# ==========================================================
+# ============================================================
+
+def need(*roles):
+    def deco(f):
+        @wraps(f)
+        def w(*a, **k):
+            if "aid" not in session:
+                return redirect("/admin/login")
+            if roles and session["role"] not in roles and session["role"] != "superadmin":
+                abort(403)
+            return f(*a, **k)
+        return w
+    return deco
+
 
 @app.route("/admin/login", methods=["GET", "POST"])
 def login():
@@ -541,6 +622,8 @@ def admin():
             Order.payment_status == "unpaid",
             Order.status != "cancelled",
         ).count(),
+        "total_customers": Customer.query.count(),
+        "new_today": Customer.query.filter(Customer.created >= start).count(),
     }
     return render_template(
         "admin.html",
@@ -557,9 +640,9 @@ def admin():
     )
 
 
-# ==========================================================
-#   ADMIN ORDERS API
-# ==========================================================
+# ============================================================
+#   ADMIN API — ORDERS
+# ============================================================
 
 @app.get("/admin/api/orders")
 @need()
@@ -576,7 +659,6 @@ def admin_orders():
 @app.get("/admin/api/orders/stream")
 @need()
 def admin_orders_stream():
-    """Server-Sent Events for live order updates."""
     import time as _time
 
     def event_stream():
@@ -641,9 +723,9 @@ def print_bill(oid):
                            printed_at=now().strftime("%d %b %Y · %I:%M %p"))
 
 
-# ==========================================================
+# ============================================================
 #   ADMIN TABLE MANAGEMENT
-# ==========================================================
+# ============================================================
 
 @app.post("/admin/table")
 @need("manager")
@@ -656,9 +738,23 @@ def add_table():
 @app.post("/admin/table/<int:tid>/regen")
 @need("manager")
 def regen(tid):
-    db.session.get(Table, tid).token = secrets.token_urlsafe(8)
+    t = db.session.get(Table, tid)
+    t.token = secrets.token_urlsafe(8)
     db.session.commit()
     return redirect("/admin#tables")
+
+
+@app.post("/admin/table/<int:tid>/unlock")
+@need("manager")
+def unlock_table(tid):
+    """Manually unlock a table (e.g. if the customer's phone died)."""
+    t = db.session.get(Table, tid)
+    if t:
+        t.locked_to_customer_id = None
+        t.status = "available"
+        t.token = secrets.token_urlsafe(8)
+        db.session.commit()
+    return redirect(f"/admin/table/{tid}")
 
 
 @app.get("/admin/qr/<int:tid>.png")
@@ -677,9 +773,9 @@ def qr_sheet():
     return render_template("qrsheet.html", cafe=CAFE, tables=Table.query.filter_by(active=True))
 
 
-# ==========================================================
+# ============================================================
 #   ADMIN ITEM / LOYALTY
-# ==========================================================
+# ============================================================
 
 @app.post("/admin/item/<int:iid>/toggle")
 @need("manager")
@@ -699,9 +795,9 @@ def save_loyalty():
     return redirect("/admin#loyalty")
 
 
-# ==========================================================
+# ============================================================
 #   PRINT QUEUE (bridge API)
-# ==========================================================
+# ============================================================
 
 def bridge_auth():
     if not secrets.compare_digest(request.headers.get("X-Print-Key", ""), PRINT_KEY):
@@ -737,9 +833,9 @@ def print_result(jid, result):
     return jsonify(ok=True)
 
 
-# ==========================================================
-#   SEED (called from main.py in dev)
-# ==========================================================
+# ============================================================
+#   SEED
+# ============================================================
 
 def seed():
     db.create_all()
