@@ -110,6 +110,11 @@
     button.sec:hover { background: #dcc9a8; }
     button.danger { background: #c0392b; }
     button.danger:hover { background: #962d22; }
+    button:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+    button:disabled:hover { background: inherit; }
 
     /* ---------- Status pills ---------- */
     .pill {
@@ -766,14 +771,20 @@
     </script>
 
   {# ============================================================
-     SINGLE TABLE DETAIL
+     SINGLE TABLE DETAIL — with Regenerate QR guarded
   ============================================================ #}
   {% elif page == 'table' %}
     <h2>Table {{ t.name }}</h2>
 
-    {% if t.locked_to_customer_id %}
+    {# Compute in-use state #}
+    {% set in_use = t.locked_to_customer_id or t.status == 'occupied' %}
+
+    {% if in_use %}
       <div class="lock-warning">
-        <b>🔒 Table locked</b> to customer #{{ t.locked_to_customer_id }}.
+        <b>🔒 Table is in use</b>
+        {% if t.locked_to_customer_id %}
+          — locked to customer #{{ t.locked_to_customer_id }}.
+        {% endif %}
         Unlocks automatically when their order is completed or cancelled.
       </div>
     {% endif %}
@@ -792,6 +803,18 @@
           onsubmit="return confirm('Force unlock this table?\n\nThe current customer will need to scan again.')">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
       <button class="danger" type="submit">🔓 Force unlock</button>
+    </form>
+
+    <form method="post" action="/admin/table/{{ t.id }}/regen"
+          style="display: inline-block; margin-left: 8px">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="sec" type="submit"
+              {% if in_use %}
+                disabled
+                title="Table is in use — unlock first"
+              {% endif %}>
+        🔄 Regenerate QR{% if in_use %} 🔒{% endif %}
+      </button>
     </form>
 
     {% for o in orders %}

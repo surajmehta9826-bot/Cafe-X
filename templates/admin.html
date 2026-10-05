@@ -222,18 +222,37 @@ tr:hover{background:#fdf9f2}
 <section id=tables>
   <form method=post action=/admin/table><input name=name placeholder="Table name/number" required><button>Add table</button></form>
   <a href=/admin/qr-sheet target=_blank><button class=sec type=button>🖨 Printable QR sheet</button></a>
-  <table>{% for t in tables %}<tr><td>Table {{t.name}}</td><td><img src=/admin/qr/{{t.id}}.png width=90></td><td><a href=/admin/qr/{{t.id}}.png download>Download</a>
-  <form method=post action=/admin/table/{{t.id}}/regen style=display:inline><button class=sec>Regenerate</button></form></td></tr>{% endfor %}</table>
-</section>
-
-<section id=customers>
-  <div style="display:flex;justify-content:space-between;margin-bottom:12px">
-    <h2 style="margin:0;color:var(--brown)">Quick customer list ({{ customers|length }})</h2>
-    <a href="/admin/customers"><button class=sec type=button>Full customer manager →</button></a>
-  </div>
   <table>
-    <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Joined</th></tr></thead>
-    {% for c in customers %}<tr><td>{{c.id}}</td><td><a href=/admin/customer/{{c.id}}>{{c.name}}</a></td><td>{{c.phone}}</td><td>{{c.created.strftime('%d %b %Y')}}</td></tr>{% endfor %}
+    {% for t in tables %}
+      {# Compute in-use state #}
+      {% set live_orders = [] %}
+      {% set in_use = t.locked_to_customer_id or t.status == 'occupied' %}
+      <tr>
+        <td>
+          <b>Table {{ t.name }}</b>
+          {% if in_use %}
+            <span class="pill sold" style="margin-left:6px">In use</span>
+          {% endif %}
+        </td>
+        <td><img src=/admin/qr/{{ t.id }}.png width=90></td>
+        <td>
+          <a href=/admin/qr/{{ t.id }}.png download><button class=sec type=button>Download</button></a>
+          <form method=post action=/admin/table/{{ t.id }}/regen style=display:inline>
+            <button class=sec type=submit
+                    {% if in_use %}disabled title="Table is in use — unlock first" style="opacity:.4;cursor:not-allowed"{% endif %}>
+              Regenerate{% if in_use %} 🔒{% endif %}
+            </button>
+          </form>
+          {% if in_use %}
+          <form method=post action=/admin/table/{{ t.id }}/unlock style=display:inline
+                onsubmit="return confirm('Force unlock Table {{ t.name }}? The guest will need to re-scan.')">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <button class=danger type=submit>🔓 Unlock</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
   </table>
 </section>
 

@@ -6,7 +6,7 @@ from datetime import datetime, date, timedelta, time as dtime
 from flask import request, session, redirect, jsonify, render_template, send_file, abort
 from app import (app, db, CAFE, STATUSES, need, Order, OrderItem, Item, Category,
                  Customer, Table, Setting, Admin, loyalty, LoyaltyTx, now,
-                 free_table_if_done, PrintJob)
+                 free_table_if_done, PrintJob, LIVE_STATUSES)
 from payments import PROVIDERS
 import qrcode
 
@@ -66,7 +66,7 @@ def _ctx():
         return session["csrf"]
     return {
         "csrf_token": csrf_token,
-        "now": now,        # ← register now() for use in Jinja templates
+        "now": now,
     }
 
 
@@ -299,7 +299,7 @@ def reports_api():
 #   TABLES
 # ============================================================
 
-LIVE = ["new", "accepted", "preparing", "ready", "served"]
+LIVE = LIVE_STATUSES  # alias for templates
 
 
 @app.get("/admin/tables")
@@ -328,7 +328,7 @@ def tables_status():
 
         counts[state] = counts.get(state, 0) + 1
         elapsed_min = int((now() - cur.created).total_seconds() / 60) if cur else 0
-        rows.append((t, state, cur, elapsed_min))       # 4-item tuple
+        rows.append((t, state, cur, elapsed_min))
 
     return page("tables", rows=rows, counts=counts)
 
@@ -670,7 +670,7 @@ def cleanup_paid_orders():
     fixed = 0
     for o in Order.query.filter(
         Order.payment_status == "paid",
-        Order.status.in_(["new", "accepted", "preparing", "ready", "served"])
+        Order.status.in_(LIVE),
     ):
         o.status = "completed"
         fixed += 1
@@ -679,8 +679,7 @@ def cleanup_paid_orders():
     freed = 0
     for t in Table.query.all():
         live = Order.query.filter(
-            Order.table_id == t.id,
-            Order.status.in_(["new", "accepted", "preparing", "ready", "served"])
+            Order.table_id == t.id, Order.status.in_(LIVE)
         ).count()
         if live == 0 and (t.status != "available" or t.locked_to_customer_id):
             t.status = "available"
