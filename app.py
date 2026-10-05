@@ -267,9 +267,9 @@ def menu():
         tb = Table.query.filter_by(token=t, active=True).first()
         if not tb:
             return "Invalid or inactive table QR code.", 404
-        if session.get("table_token") and session["table_token"] != tb.token:
-            session.pop("cid", None)
-            session.pop("ckey", None)
+
+        # Update the table in the session. The customer identity (cid/ckey)
+        # belongs to the person, not the table — so we do NOT clear it here.
         session["table_id"] = tb.id
         session["table_token"] = tb.token
 
@@ -278,6 +278,9 @@ def menu():
         return "Please scan the QR code on your table.", 400
 
     c = db.session.get(Customer, session.get("cid", 0))
+
+    # Force-logout check: if the admin rotated this customer's session_key,
+    # invalidate the current session.
     if c and session.get("ckey") and c.session_key and session["ckey"] != c.session_key:
         session.pop("cid", None)
         session.pop("ckey", None)
