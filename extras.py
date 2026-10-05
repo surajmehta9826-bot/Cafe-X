@@ -302,12 +302,32 @@ LIVE = ["new", "accepted", "preparing", "ready", "served"]
 @app.get("/admin/tables")
 @need("manager")
 def tables_status():
+    """Table overview with per-state counts for the dashboard."""
     rows = []
+    counts = {"free": 0, "occupied": 0, "locked": 0, "disabled": 0, "reserved": 0, "cleaning": 0}
+
     for t in Table.query.all():
-        cur = Order.query.filter(Order.table_id == t.id, Order.status.in_(LIVE)) \
-                         .order_by(Order.id.desc()).first()
-        rows.append((t, "occupied" if cur else ("disabled" if not t.active else t.status), cur))
-    return page("tables", rows=rows)
+        cur = Order.query.filter(
+            Order.table_id == t.id, Order.status.in_(LIVE)
+        ).order_by(Order.id.desc()).first()
+
+        if not t.active:
+            state = "disabled"
+        elif cur:
+            state = "occupied"
+        elif t.locked_to_customer_id:
+            state = "locked"
+        elif t.status == "reserved":
+            state = "reserved"
+        elif t.status == "cleaning":
+            state = "cleaning"
+        else:
+            state = "free"
+
+        counts[state] = counts.get(state, 0) + 1
+        rows.append((t, state, cur))
+
+    return page("tables", rows=rows, counts=counts)
 
 
 @app.get("/admin/table/<int:tid>")
@@ -432,7 +452,7 @@ def customer_force_logout(cid):
     if not c:
         return jsonify(error="Customer not found"), 404
     c.session_key = secrets.token_urlsafe(8)
-    c.device_token = None      # invalidate device cookie too
+    c.device_token = None
     db.session.commit()
     return jsonify(ok=True, new_key=c.session_key)
 
@@ -558,7 +578,7 @@ def pay_callback(name):
 
 
 # ============================================================
-#   TEMPORARY — SEED + CLEANUP (remove after use)
+#   TEMPORARY — SEED + CLEANUP
 # ============================================================
 
 @app.get("/admin/seed/<secret>")

@@ -33,12 +33,7 @@
       align-items: center;
       box-shadow: 0 2px 6px #0002;
     }
-
-    header b {
-      font-size: 16px;
-      margin-right: 8px;
-    }
-
+    header b { font-size: 16px; margin-right: 8px; }
     header a {
       color: #fff;
       text-decoration: none;
@@ -46,17 +41,11 @@
       border-radius: 6px;
       font-size: 14px;
     }
-
     header a:hover { background: #00000022; }
     header a.active { background: #6d4620; }
 
     /* ---------- Layout ---------- */
-    main {
-      padding: 14px;
-      max-width: 1200px;
-      margin: auto;
-    }
-
+    main { padding: 14px; max-width: 1200px; margin: auto; }
     .card {
       background: #fff;
       border-radius: 12px;
@@ -75,7 +64,6 @@
       box-shadow: 0 1px 3px #0001;
       margin-top: 8px;
     }
-
     th {
       background: var(--cream);
       text-align: left;
@@ -87,14 +75,12 @@
       text-transform: uppercase;
       letter-spacing: .03em;
     }
-
     td {
       padding: 10px 12px;
       border-bottom: 1px solid #f3ebdc;
       font-size: 14px;
       vertical-align: middle;
     }
-
     tr:last-child td { border-bottom: 0; }
     tr:hover { background: #fdf9f2; }
 
@@ -107,11 +93,7 @@
       font-size: 14px;
       background: #fff;
     }
-
-    input:focus, select:focus {
-      outline: none;
-      border-color: var(--brown);
-    }
+    input:focus, select:focus { outline: none; border-color: var(--brown); }
 
     /* ---------- Buttons ---------- */
     button {
@@ -123,16 +105,9 @@
       cursor: pointer;
       font-size: 14px;
     }
-
     button:hover { background: var(--brown-d); }
-
-    button.sec {
-      background: #e8dcc8;
-      color: #5b3d1a;
-    }
-
+    button.sec { background: #e8dcc8; color: #5b3d1a; }
     button.sec:hover { background: #dcc9a8; }
-
     button.danger { background: #c0392b; }
     button.danger:hover { background: #962d22; }
 
@@ -143,12 +118,163 @@
       font-size: 12px;
       font-weight: 600;
     }
-
     .pill.avail { background: #d4edda; color: #1a6b1a; }
     .pill.sold { background: #f8d7da; color: #8b1a1a; }
     .pill.feat { background: #fde8c6; color: #8b5a2b; }
 
-    /* ---------- Table lock warning ---------- */
+    /* ============================================================
+       TABLE OVERVIEW
+       ============================================================ */
+    .table-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .summary-stat {
+      background: #fff;
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      box-shadow: 0 1px 3px #0001;
+      border-left: 4px solid #ccc;
+    }
+    .summary-stat.free     { border-left-color: #2ecc71; }
+    .summary-stat.occupied { border-left-color: #e74c3c; }
+    .summary-stat.locked   { border-left-color: #f1c40f; }
+    .summary-stat.disabled { border-left-color: #999; }
+    .summary-stat .num {
+      display: block;
+      font-size: 26px;
+      font-weight: 700;
+      color: #2b2118;
+    }
+    .summary-stat .lbl {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 12px 0;
+    }
+    .filter-tabs .tab {
+      background: #fff;
+      color: #5b3d1a;
+      border: 1px solid #ecdfc9;
+      padding: 8px 16px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .filter-tabs .tab:hover { background: #f9f3e8; }
+    .filter-tabs .tab.active {
+      background: #8b5a2b;
+      color: #fff;
+      border-color: #8b5a2b;
+    }
+
+    .table-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+    @media (max-width: 600px) {
+      .table-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    }
+
+    .table-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 2px 8px #0001;
+      border: 2px solid #eee;
+      border-top: 6px solid #ccc;
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow .15s ease, transform .1s ease;
+    }
+    .table-card:hover {
+      box-shadow: 0 4px 14px #0002;
+      transform: translateY(-1px);
+    }
+    .table-card.free     { border-top-color: #2ecc71; }
+    .table-card.occupied { border-top-color: #e74c3c; background: #fff7f7; }
+    .table-card.locked   { border-top-color: #f1c40f; background: #fffbf0; }
+    .table-card.reserved { border-top-color: #3498db; background: #f2f9ff; }
+    .table-card.cleaning { border-top-color: #e67e22; background: #fff8f1; }
+    .table-card.disabled { border-top-color: #999; background: #f5f5f5; opacity: .65; }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 4px;
+    }
+    .card-header b { font-size: 15px; color: #2b2118; }
+
+    .state-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 99px;
+      background: #eee;
+      color: #333;
+      white-space: nowrap;
+    }
+    .state-pill.free     { background: #d4edda; color: #1a6b1a; }
+    .state-pill.occupied { background: #fdeceb; color: #c0392b; }
+    .state-pill.locked   { background: #fef8dc; color: #a58500; }
+    .state-pill.reserved { background: #e4f0fa; color: #0a63b0; }
+    .state-pill.cleaning { background: #fdeddd; color: #b95a14; }
+    .state-pill.disabled { background: #eee; color: #666; }
+
+    .card-body {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .qr-thumb {
+      width: 70px;
+      height: 70px;
+      border-radius: 8px;
+      background: #faf6ee;
+      padding: 4px;
+      flex-shrink: 0;
+    }
+    .card-info {
+      flex: 1;
+      font-size: 12px;
+      line-height: 1.4;
+      min-width: 0;
+    }
+    .card-info .guest { font-size: 13px; color: #2b2118; }
+    .card-info .order-line { color: #666; }
+    .card-info .dim { color: #999; }
+    .card-info .elapsed { color: #5b3d1a; margin-top: 2px; }
+    .card-info .elapsed.warn { color: #e67e22; font-weight: 600; }
+    .card-info .elapsed.crit { color: #c0392b; font-weight: 700; }
+
+    .card-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: auto;
+    }
+    .card-actions a { flex: 1; text-decoration: none; }
+    .card-actions button {
+      width: 100%;
+      padding: 8px;
+      font-size: 13px;
+    }
+
+    /* Lock warning inside single table detail */
     .lock-warning {
       background: #fff6e0;
       border-left: 4px solid #c9965a;
@@ -194,7 +320,7 @@
   <main>
 
   {# ============================================================
-     PROMOS PAGE
+     PROMOS
   ============================================================ #}
   {% if page == 'promos' %}
     <h2>Discounts &amp; promotions</h2>
@@ -221,29 +347,14 @@
 
     <table>
       <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Value</th>
-          <th>Min</th>
-          <th>Max</th>
-          <th>Dates</th>
-          <th>Status</th>
-        </tr>
+        <tr><th>Name</th><th>Type</th><th>Value</th><th>Min</th><th>Max</th><th>Dates</th><th>Status</th></tr>
       </thead>
       <tbody>
         {% for d in discounts %}
           <tr>
-            <td>{{ d.name }}</td>
-            <td>{{ d.kind }}</td>
-            <td>{{ d.value }}</td>
-            <td>{{ d.min_order }}</td>
-            <td>{{ d.max_discount or '—' }}</td>
-            <td>
-              {{ d.start.strftime('%d %b') if d.start else '…' }}
-              →
-              {{ d.end.strftime('%d %b') if d.end else '…' }}
-            </td>
+            <td>{{ d.name }}</td><td>{{ d.kind }}</td><td>{{ d.value }}</td>
+            <td>{{ d.min_order }}</td><td>{{ d.max_discount or '—' }}</td>
+            <td>{{ d.start.strftime('%d %b') if d.start else '…' }} → {{ d.end.strftime('%d %b') if d.end else '…' }}</td>
             <td>
               <form method="post" action="/admin/promos/{{ d.id }}/toggle">
                 <button class="sec">{{ 'Active ✓' if d.active else 'Inactive' }}</button>
@@ -255,7 +366,7 @@
     </table>
 
   {# ============================================================
-     REPORTS PAGE
+     REPORTS
   ============================================================ #}
   {% elif page == 'reports' %}
     <h2>Reports</h2>
@@ -266,66 +377,43 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <script>
-      fetch('/admin/api/reports')
-        .then((r) => r.json())
-        .then((data) => {
-          const card = (title, value) =>
-            `<div class="card"><small>${title}</small><h3>${value}</h3></div>`;
+      fetch('/admin/api/reports').then((r) => r.json()).then((data) => {
+        const card = (title, value) =>
+          `<div class="card"><small>${title}</small><h3>${value}</h3></div>`;
+        document.getElementById('reports-cards').innerHTML =
+          card('7 days', 'Rs. ' + data.week) +
+          card('This month', 'Rs. ' + data.month) +
+          card('This year', 'Rs. ' + data.year) +
+          card('Avg order', 'Rs. ' + data.avg) +
+          card('New customers today', data.new_customers) +
+          card('All customers', data.total_customers) +
+          card('Orders by status', Object.entries(data.status).map((e) => e.join(': ')).join(' · '));
 
-          document.getElementById('reports-cards').innerHTML =
-            card('7 days', 'Rs. ' + data.week) +
-            card('This month', 'Rs. ' + data.month) +
-            card('This year', 'Rs. ' + data.year) +
-            card('Avg order', 'Rs. ' + data.avg) +
-            card('New customers today', data.new_customers) +
-            card('All customers', data.total_customers) +
-            card('Orders by status',
-              Object.entries(data.status).map((e) => e.join(': ')).join(' · '));
-
-          new Chart(document.getElementById('chart-sales'), {
-            type: 'line',
-            data: {
-              labels: data.labels,
-              datasets: [{
-                label: 'Daily sales (Rs.)',
-                data: data.sales,
-                borderColor: '#8b5a2b'
-              }]
-            }
-          });
-
-          new Chart(document.getElementById('chart-top'), {
-            type: 'bar',
-            data: {
-              labels: data.top.map((t) => t[0]),
-              datasets: [{
-                label: 'Most ordered',
-                data: data.top.map((t) => t[1]),
-                backgroundColor: '#c9965a'
-              }]
-            }
-          });
-
-          document.getElementById('reports-loyal').innerHTML =
-            '<b>Highest-spending customers</b><br>' +
-            data.loyal.map((x) => x[0] + ' — Rs. ' + x[1]).join('<br>');
+        new Chart(document.getElementById('chart-sales'), {
+          type: 'line',
+          data: { labels: data.labels, datasets: [{
+            label: 'Daily sales (Rs.)', data: data.sales, borderColor: '#8b5a2b'
+          }] }
         });
+        new Chart(document.getElementById('chart-top'), {
+          type: 'bar',
+          data: { labels: data.top.map((t) => t[0]), datasets: [{
+            label: 'Most ordered', data: data.top.map((t) => t[1]), backgroundColor: '#c9965a'
+          }] }
+        });
+        document.getElementById('reports-loyal').innerHTML =
+          '<b>Highest-spending customers</b><br>' +
+          data.loyal.map((x) => x[0] + ' — Rs. ' + x[1]).join('<br>');
+      });
     </script>
 
   {# ============================================================
-     AUDIT LOG
+     AUDIT
   ============================================================ #}
   {% elif page == 'audit' %}
     <h2>Admin activity log</h2>
     <table>
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>Admin</th>
-          <th>Action</th>
-          <th>IP</th>
-        </tr>
-      </thead>
+      <thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>IP</th></tr></thead>
       <tbody>
         {% for g in logs %}
           <tr>
@@ -339,31 +427,107 @@
     </table>
 
   {# ============================================================
-     TABLE STATUS LIST
+     TABLE OVERVIEW (GRID)
   ============================================================ #}
   {% elif page == 'tables' %}
-    <h2>Table status</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Table</th>
-          <th>Status</th>
-          <th>Current order</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for t, s, o in rows %}
-          <tr>
-            <td><a href="/admin/table/{{ t.id }}">Table {{ t.name }}</a></td>
-            <td>{{ s }}</td>
-            <td>{{ ('#%d' % o.number) if o else '—' }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <h2>Table overview</h2>
+
+    {# Summary counters #}
+    <div class="table-summary">
+      <div class="summary-stat free"><span class="num">{{ counts.free }}</span><span class="lbl">🟢 Free</span></div>
+      <div class="summary-stat occupied"><span class="num">{{ counts.occupied }}</span><span class="lbl">🔴 Occupied</span></div>
+      <div class="summary-stat locked"><span class="num">{{ counts.locked }}</span><span class="lbl">🟡 Locked</span></div>
+      <div class="summary-stat disabled"><span class="num">{{ counts.disabled }}</span><span class="lbl">⚪ Disabled</span></div>
+    </div>
+
+    {# Filter tabs #}
+    <div class="filter-tabs">
+      <button class="tab active" onclick="filterTables('all', this)">All ({{ rows|length }})</button>
+      <button class="tab" onclick="filterTables('free', this)">Free ({{ counts.free }})</button>
+      <button class="tab" onclick="filterTables('occupied', this)">Occupied ({{ counts.occupied }})</button>
+      <button class="tab" onclick="filterTables('locked', this)">Locked ({{ counts.locked }})</button>
+    </div>
+
+    {# Grid #}
+    <div class="table-grid" id="table-grid">
+      {% for t, state, o in rows %}
+        {% set elapsed_min = ((now() - o.created).total_seconds() / 60)|int if o else 0 %}
+        <div class="table-card {{ state }}" data-state="{{ state }}">
+          <div class="card-header">
+            <b>Table {{ t.name }}</b>
+            <span class="state-pill {{ state }}">
+              {% if state == 'free' %}🟢 Free
+              {% elif state == 'occupied' %}🔴 Occupied
+              {% elif state == 'locked' %}🟡 Locked
+              {% elif state == 'reserved' %}🔵 Reserved
+              {% elif state == 'cleaning' %}🟠 Cleaning
+              {% elif state == 'disabled' %}⚪ Disabled
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="card-body">
+            <img src="/admin/qr/{{ t.id }}.png" alt="QR" class="qr-thumb">
+            <div class="card-info">
+              {% if o %}
+                <div class="guest"><b>{{ o.customer.name }}</b></div>
+                <div class="order-line">#{{ o.number }} · Rs. {{ '%.0f'|format(o.total) }}</div>
+                <div class="elapsed {{ 'warn' if elapsed_min > 20 else '' }} {{ 'crit' if elapsed_min > 45 else '' }}">
+                  ⏱ {{ elapsed_min }} min ago
+                </div>
+              {% elif t.locked_to_customer_id %}
+                <div class="dim">Locked to guest</div>
+                <div class="dim">No order yet</div>
+              {% elif state == 'disabled' %}
+                <div class="dim">Table disabled</div>
+              {% elif state == 'reserved' %}
+                <div class="dim">Reserved</div>
+              {% elif state == 'cleaning' %}
+                <div class="dim">Being cleaned</div>
+              {% else %}
+                <div class="dim">Ready for guest</div>
+                <div class="dim">Scan QR to order</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <a href="/admin/table/{{ t.id }}"><button class="sec">View</button></a>
+            {% if t.locked_to_customer_id or state == 'occupied' %}
+              <form method="post" action="/admin/table/{{ t.id }}/unlock"
+                    style="display:inline;flex:1"
+                    onsubmit="return confirm('Force unlock Table {{ t.name }}?\n\nCurrent guest will need to scan again.')">
+                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                <button class="danger" style="width:100%">🔓 Unlock</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div id="empty-filter-msg" style="display:none;text-align:center;padding:40px;color:#888">
+      No tables match this filter.
+    </div>
+
+    <script>
+      function filterTables(state, btn) {
+        document.querySelectorAll('.filter-tabs .tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+
+        const cards = document.querySelectorAll('#table-grid .table-card');
+        let visible = 0;
+        cards.forEach(card => {
+          const match = (state === 'all') || (card.dataset.state === state);
+          card.style.display = match ? '' : 'none';
+          if (match) visible++;
+        });
+        document.getElementById('empty-filter-msg').style.display = visible === 0 ? 'block' : 'none';
+      }
+    </script>
 
   {# ============================================================
-     SINGLE TABLE DETAIL  (with Force unlock)
+     SINGLE TABLE DETAIL
   ============================================================ #}
   {% elif page == 'table' %}
     <h2>Table {{ t.name }}</h2>
@@ -371,7 +535,7 @@
     {% if t.locked_to_customer_id %}
       <div class="lock-warning">
         <b>🔒 Table locked</b> to customer #{{ t.locked_to_customer_id }}.
-        It will unlock automatically when their order is completed or cancelled.
+        Unlocks automatically when their order is completed or cancelled.
       </div>
     {% endif %}
 
@@ -393,49 +557,34 @@
 
     {% for o in orders %}
       <div class="card">
-        #{{ o.number }} ·
-        {{ o.created.strftime('%d %b %H:%M') }} ·
-        {{ o.customer.name }} ·
-        Rs. {{ o.total }} ·
-        <b>{{ o.status }}</b>
-        {{ ' (current)' if o.status in live }}
-        <br>
-        {% for i in o.items %}
-          {{ i.qty }} × {{ i.name }}<br>
-        {% endfor %}
+        #{{ o.number }} · {{ o.created.strftime('%d %b %H:%M') }} ·
+        {{ o.customer.name }} · Rs. {{ o.total }} ·
+        <b>{{ o.status }}</b>{{ ' (current)' if o.status in live }}<br>
+        {% for i in o.items %}{{ i.qty }} × {{ i.name }}<br>{% endfor %}
       </div>
     {% endfor %}
 
   {# ============================================================
-     SINGLE CUSTOMER DETAIL
+     CUSTOMER DETAIL
   ============================================================ #}
   {% elif page == 'customer' %}
     <h2>{{ c.name }} {{ '(disabled)' if c.disabled }}</h2>
-
     <p>
       {{ c.phone }} · joined {{ c.created.strftime('%d %b %Y') }}<br>
-      Orders: {{ orders|length }} ·
-      Spent: Rs. {{ '%.0f'|format(spent) }} ·
-      Loyalty {{ loy.progress }}/{{ loy.required }} ·
-      Reward: {{ loy.reward }} ·
-      Redeemed: {{ redeemed }}
+      Orders: {{ orders|length }} · Spent: Rs. {{ '%.0f'|format(spent) }} ·
+      Loyalty {{ loy.progress }}/{{ loy.required }} · Reward: {{ loy.reward }} · Redeemed: {{ redeemed }}
     </p>
 
     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0">
       <form method="post" action="/admin/customer/{{ c.id }}/toggle">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-        <button class="sec" type="submit">
-          {{ 'Enable' if c.disabled else 'Disable' }} account
-        </button>
+        <button class="sec" type="submit">{{ 'Enable' if c.disabled else 'Disable' }} account</button>
       </form>
-
-      <form method="post"
-            action="/admin/customer/{{ c.id }}/force-logout"
+      <form method="post" action="/admin/customer/{{ c.id }}/force-logout"
             onsubmit="return confirm('Force logout on all devices?')">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
         <button class="sec" type="submit">Force logout</button>
       </form>
-
       {% if session.role == 'superadmin' %}
         <button class="danger" type="button"
                 onclick="deleteCustomer({{ c.id }}, '{{ c.name|e }}', {{ orders|length }})">
@@ -456,11 +605,8 @@
 
     {% for o in orders %}
       <div class="card">
-        #{{ o.number }} ·
-        {{ o.created.strftime('%d %b %Y') }} ·
-        Table {{ o.table.name }} ·
-        Rs. {{ o.total }} ·
-        {{ o.status }}
+        #{{ o.number }} · {{ o.created.strftime('%d %b %Y') }} ·
+        Table {{ o.table.name }} · Rs. {{ o.total }} · {{ o.status }}
       </div>
     {% endfor %}
 
@@ -468,52 +614,30 @@
       async function deleteCustomer(id, name, orderCount) {
         if (!confirm(`Delete "${name}" permanently?\n\nRemoves ${orderCount} order(s), payments, and loyalty.\n\nCANNOT be undone.`)) return;
         if (!confirm('Absolutely sure? Click OK to confirm.')) return;
-
         const res = await fetch(`/admin/customer/${id}/delete`, {
-          method: 'POST',
-          headers: { 'X-CSRF': '{{ csrf_token() }}' }
+          method: 'POST', headers: { 'X-CSRF': '{{ csrf_token() }}' }
         });
-
-        if (res.ok) {
-          alert('Deleted.');
-          location.href = '/admin/customers';
-        } else if (res.status === 403) {
-          alert('Only superadmin can delete.');
-        } else {
-          alert('Delete failed: ' + res.status);
-        }
+        if (res.ok) { alert('Deleted.'); location.href = '/admin/customers'; }
+        else if (res.status === 403) { alert('Only superadmin can delete.'); }
+        else { alert('Delete failed: ' + res.status); }
       }
     </script>
 
   {# ============================================================
-     ITEM OPTIONS (variants & add-ons)
+     ITEM OPTIONS
   ============================================================ #}
   {% elif page == 'options' %}
     <h2>{{ item.name }} — variants &amp; add-ons</h2>
-
     <form method="post" action="/admin/item/{{ item.id }}/variant" class="card">
-      Variant (e.g. Large, +50)
-      <input name="name" required>
-      <input name="price" placeholder="+ price">
-      <button>Add</button>
+      Variant (e.g. Large, +50) <input name="name" required>
+      <input name="price" placeholder="+ price"><button>Add</button>
     </form>
-
     <form method="post" action="/admin/item/{{ item.id }}/addon" class="card">
-      Add-on (e.g. Extra cheese)
-      <input name="name" required>
-      <input name="price" placeholder="Price">
-      <button>Add</button>
+      Add-on (e.g. Extra cheese) <input name="name" required>
+      <input name="price" placeholder="Price"><button>Add</button>
     </form>
-
     <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Name</th>
-          <th>Price</th>
-          <th></th>
-        </tr>
-      </thead>
+      <thead><tr><th>Type</th><th>Name</th><th>Price</th><th></th></tr></thead>
       <tbody>
         {% for type_name, rows in [('variant', variants), ('addon', addons)] %}
           {% for r in rows %}
@@ -539,24 +663,16 @@
   ============================================================ #}
   {% elif page == 'payqr' %}
     <h2>💰 Payment QR Generator</h2>
-    <p style="color: #666; max-width: 640px">
-      Enter an amount and optional note. A QR is generated below.
-    </p>
+    <p style="color: #666; max-width: 640px">Enter an amount and optional note. A QR is generated below.</p>
 
     <form onsubmit="generatePaymentQr(event)"
           style="background: #fff; border-radius: 12px; padding: 16px; max-width: 520px; margin: 12px 0">
-      <label style="display: block; margin: 8px 0 4px; color: #555; font-size: .9rem">
-        Amount (Rs.)
-      </label>
+      <label style="display: block; margin: 8px 0 4px; color: #555; font-size: .9rem">Amount (Rs.)</label>
       <input id="qr-amount" type="number" min="1" step="1" value="500" required
              style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem">
-
-      <label style="display: block; margin: 12px 0 4px; color: #555; font-size: .9rem">
-        Note (optional)
-      </label>
+      <label style="display: block; margin: 12px 0 4px; color: #555; font-size: .9rem">Note (optional)</label>
       <input id="qr-note" type="text" placeholder="e.g. Table 3 bill" maxlength="80"
              style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem">
-
       <button style="background: #8b5a2b; color: #fff; border: 0; padding: 11px 20px; border-radius: 8px; font-size: 1rem; margin-top: 14px; cursor: pointer">
         Generate QR
       </button>
@@ -578,7 +694,6 @@
         const amount = parseInt(document.getElementById('qr-amount').value, 10);
         const note = document.getElementById('qr-note').value.trim();
         const url = `/admin/pay-qr/${amount}.png?note=${encodeURIComponent(note)}&_t=${Date.now()}`;
-
         document.getElementById('qr-image').src = url;
         document.getElementById('qr-download').href = url;
         document.getElementById('qr-download').setAttribute('download', `pay-${amount}.png`);
@@ -605,7 +720,6 @@
         Search
         <input name="q" value="{{ q }}" placeholder="Name or phone" style="min-width: 220px">
       </label>
-
       <label style="display: flex; flex-direction: column; font-size: 12px; color: #666">
         Filter
         <select name="status">
@@ -616,7 +730,6 @@
           <option value="no_orders" {{ 'selected' if status == 'no_orders' }}>No orders</option>
         </select>
       </label>
-
       <button type="submit">Apply</button>
       <a href="/admin/customers" style="text-decoration: none">
         <button type="button" class="sec">Reset</button>
@@ -631,14 +744,8 @@
     <table>
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Orders</th>
-          <th>Spent</th>
-          <th>Last order</th>
-          <th>Status</th>
-          <th style="width: 260px">Actions</th>
+          <th>ID</th><th>Name</th><th>Phone</th><th>Orders</th>
+          <th>Spent</th><th>Last order</th><th>Status</th><th style="width: 260px">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -649,13 +756,7 @@
             <td>{{ r.phone }}</td>
             <td>{{ r.orders }}</td>
             <td>Rs. {{ '%.0f'|format(r.spent) }}</td>
-            <td>
-              {% if r.last_order %}
-                {{ r.last_order.strftime('%d %b %Y') }}
-              {% else %}
-                —
-              {% endif %}
-            </td>
+            <td>{% if r.last_order %}{{ r.last_order.strftime('%d %b %Y') }}{% else %}—{% endif %}</td>
             <td>
               {% if r.disabled %}
                 <span class="pill sold">Disabled</span>
@@ -666,18 +767,14 @@
             <td>
               <form method="post" action="/admin/customer/{{ r.id }}/toggle" style="display: inline">
                 <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-                <button class="sec" type="submit">
-                  {{ 'Enable' if r.disabled else 'Disable' }}
-                </button>
+                <button class="sec" type="submit">{{ 'Enable' if r.disabled else 'Disable' }}</button>
               </form>
-
               <form method="post" action="/admin/customer/{{ r.id }}/force-logout"
                     style="display: inline"
                     onsubmit="return confirm('Force logout {{ r.name|e }} from all devices?')">
                 <input type="hidden" name="csrf" value="{{ csrf_token() }}">
                 <button class="sec" type="submit">Force logout</button>
               </form>
-
               {% if session.role == 'superadmin' %}
                 <button class="danger" type="button"
                         onclick="deleteCustomer({{ r.id }}, '{{ r.name|e }}', {{ r.orders }})">
@@ -687,21 +784,14 @@
             </td>
           </tr>
         {% else %}
-          <tr>
-            <td colspan="8" style="text-align: center; color: #888; padding: 20px">
-              No customers match the filter.
-            </td>
-          </tr>
+          <tr><td colspan="8" style="text-align: center; color: #888; padding: 20px">No customers match the filter.</td></tr>
         {% endfor %}
       </tbody>
     </table>
 
     <div class="card" style="margin-top: 16px">
       <b>Bulk cleanup</b>
-      <p style="color: #666; font-size: 13px; margin: 6px 0">
-        Delete customers with no orders in the last N days. Superadmin only.
-      </p>
-
+      <p style="color: #666; font-size: 13px; margin: 6px 0">Delete customers with no orders in the last N days. Superadmin only.</p>
       {% if session.role == 'superadmin' %}
         <form method="post" action="/admin/customers/bulk-delete-inactive"
               onsubmit="return confirm('Delete all customers with no orders in the last N days? Cannot be undone.')">
@@ -719,22 +809,13 @@
       async function deleteCustomer(id, name, orderCount) {
         if (!confirm(`Delete "${name}" permanently?\n\nRemoves ${orderCount} order(s), payments, and loyalty.\n\nCANNOT be undone.`)) return;
         if (!confirm('Absolutely sure? Click OK to confirm.')) return;
-
         const res = await fetch(`/admin/customer/${id}/delete`, {
-          method: 'POST',
-          headers: { 'X-CSRF': '{{ csrf_token() }}' }
+          method: 'POST', headers: { 'X-CSRF': '{{ csrf_token() }}' }
         });
-
         const data = await res.json().catch(() => ({}));
-
-        if (res.ok) {
-          alert('Deleted.');
-          location.reload();
-        } else if (res.status === 403) {
-          alert('Only superadmin can delete.');
-        } else {
-          alert('Delete failed: ' + (data.error || res.status));
-        }
+        if (res.ok) { alert('Deleted.'); location.reload(); }
+        else if (res.status === 403) { alert('Only superadmin can delete.'); }
+        else { alert('Delete failed: ' + (data.error || res.status)); }
       }
     </script>
   {% endif %}
