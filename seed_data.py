@@ -1,12 +1,11 @@
-"""Populate the database with demo data. Run once:  python seed_data.py"""
-from datetime import datetime, timedelta
+﻿from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
 
 from dotenv import load_dotenv
 load_dotenv()
 
 from app import app, db, Admin, Table, Category, Item, Customer, Order, OrderItem, PrintJob, Setting
-import extras  # noqa: F401
+import extras
 from extras import Discount, Variant, Addon, Payment
 
 
@@ -22,46 +21,87 @@ def run():
             db.session.add(Admin(username="staff1",
                                  pw_hash=generate_password_hash("staff123"),
                                  role="staff"))
+        db.session.commit()
 
         cats = {}
-        for name, sort in [("☕ Coffee", 1), ("🍵 Tea", 2), ("🥤 Cold Drinks", 3),
-                           ("🍕 Snacks", 4), ("🍰 Desserts", 5), ("🍽️ Main Course", 6)]:
+        for name, sort in [("Coffee", 1), ("Tea", 2), ("Cold Drinks", 3),
+                           ("Snacks", 4), ("Desserts", 5), ("Main Course", 6)]:
             c = Category.query.filter_by(name=name).first() or Category(name=name, sort=sort)
             db.session.add(c)
             db.session.flush()
             cats[name] = c
+        db.session.commit()
 
         items_data = [
-            ("☕ Coffee", "Espresso", "Strong single shot of pure coffee.", 120, True, False),
-            ("☕ Coffee", "Cappuccino", "Espresso with steamed milk foam.", 180, True, True),
-            ("☕ Coffee", "Latte", "Smooth espresso with lots of milk.", 200, True, False),
-            ("☕ Coffee", "Americano", "Espresso diluted with hot water.", 150, True, False),
-            ("☕ Coffee", "Mocha", "Chocolate + espresso + milk.", 220, True, True),
-            ("🍵 Tea", "Masala Chai", "Spiced Indian tea with milk.", 80, True, True),
-            ("🍵 Tea", "Green Tea", "Fresh brewed organic green tea.", 90, True, False),
-            ("🍵 Tea", "Lemon Tea", "Black tea with fresh lemon.", 90, True, False),
-            ("🥤 Cold Drinks", "Iced Latte", "Chilled latte over ice.", 210, True, True),
-            ("🥤 Cold Drinks", "Cold Coffee", "Iced, creamy, smooth.", 200, True, True),
-            ("🥤 Cold Drinks", "Lemon Soda", "Fresh lemon soda with mint.", 120, True, False),
-            ("🥤 Cold Drinks", "Mango Smoothie", "Fresh mango blended with yogurt.", 250, True, False),
-            ("🍕 Snacks", "Veg Momo (8pcs)", "Steamed dumplings with chutney.", 180, True, True),
-            ("🍕 Snacks", "Chicken Momo (8pcs)", "Steamed chicken dumplings.", 220, False, False),
-            ("🍕 Snacks", "French Fries", "Crispy golden fries with dip.", 150, True, False),
-            ("🍕 Snacks", "Chicken Wings", "Spicy grilled wings (6 pcs).", 320, False, False),
-            ("🍕 Snacks", "Veg Sandwich", "Grilled sandwich with veggies & cheese.", 180, True, False),
-            ("🍰 Desserts", "Chocolate Brownie", "Warm brownie with fudge sauce.", 220, True, True),
-            ("🍰 Desserts", "Cheesecake Slice", "Classic New York style.", 260, True, False),
-            ("🍰 Desserts", "Ice Cream (2 scoop)", "Choose any two flavours.", 180, True, False),
-            ("🍽️ Main Course", "Chicken Biryani", "Aromatic basmati rice with chicken.", 420, False, True),
-            ("🍽️ Main Course", "Veg Thali", "Rice, dal, sabzi, roti, salad.", 350, True, False),
-            ("🍽️ Main Course", "Pasta Alfredo", "Creamy white sauce pasta.", 320, True, False),
-            ("🍽️ Main Course", "Chicken Burger", "Grilled chicken patty burger with fries.", 340, False, False),
+            ("Coffee", "Espresso", "Strong single shot of pure coffee.", 120, True, False),
+            ("Coffee", "Doppio", "Double shot of espresso.", 180, True, False),
+            ("Coffee", "Americano", "Espresso diluted with hot water.", 150, True, False),
+            ("Coffee", "Cappuccino", "Espresso with steamed milk foam.", 180, True, True),
+            ("Coffee", "Latte", "Smooth espresso with lots of milk.", 200, True, False),
+            ("Coffee", "Flat White", "Silky microfoam over espresso.", 210, True, False),
+            ("Coffee", "Mocha", "Chocolate plus espresso plus milk.", 220, True, True),
+            ("Coffee", "Caramel Macchiato", "Espresso with caramel and milk.", 240, True, False),
+            ("Coffee", "Affogato", "Espresso poured over vanilla ice cream.", 260, True, False),
+            ("Coffee", "Iced Americano", "Chilled espresso over ice.", 170, True, False),
+            ("Tea", "Masala Chai", "Spiced Indian tea with milk.", 80, True, True),
+            ("Tea", "Black Tea", "Classic hot black tea.", 60, True, False),
+            ("Tea", "Green Tea", "Fresh brewed organic green tea.", 90, True, False),
+            ("Tea", "Lemon Tea", "Black tea with fresh lemon.", 90, True, False),
+            ("Tea", "Ginger Tea", "Fresh ginger and honey tea.", 100, True, False),
+            ("Tea", "Honey Lemon Ginger", "Soothing honey lemon ginger brew.", 120, True, False),
+            ("Tea", "Hot Chocolate", "Rich creamy hot chocolate.", 180, True, True),
+            ("Tea", "Iced Lemon Tea", "Chilled black tea with lemon.", 110, True, False),
+            ("Cold Drinks", "Cold Coffee", "Iced creamy smooth.", 200, True, True),
+            ("Cold Drinks", "Iced Latte", "Chilled latte over ice.", 210, True, True),
+            ("Cold Drinks", "Frappe", "Blended ice coffee with whipped cream.", 280, True, False),
+            ("Cold Drinks", "Cold Brew", "Slow-steeped smooth cold brew.", 250, True, False),
+            ("Cold Drinks", "Iced Mocha", "Chocolate espresso ice.", 260, True, False),
+            ("Cold Drinks", "Lemon Soda", "Fresh lemon soda with mint.", 120, True, False),
+            ("Cold Drinks", "Blue Lagoon", "Blue curacao mocktail.", 200, True, False),
+            ("Cold Drinks", "Virgin Mojito", "Mint lime soda mocktail.", 180, True, True),
+            ("Cold Drinks", "Mango Smoothie", "Fresh mango blended with yogurt.", 250, True, False),
+            ("Cold Drinks", "Strawberry Shake", "Fresh strawberries with milk.", 240, True, False),
+            ("Snacks", "French Fries", "Crispy golden fries with dip.", 150, True, False),
+            ("Snacks", "Peri Peri Fries", "Fries dusted with spicy peri peri.", 180, True, False),
+            ("Snacks", "Cheese Fries", "Loaded with melted cheese.", 220, True, False),
+            ("Snacks", "Veg Momo (8 pcs)", "Steamed dumplings with chutney.", 180, True, True),
+            ("Snacks", "Chicken Momo (8 pcs)", "Steamed chicken dumplings.", 220, False, True),
+            ("Snacks", "Fried Momo (8 pcs)", "Crispy fried momo.", 200, True, False),
+            ("Snacks", "Veg Sandwich", "Grilled with veggies and cheese.", 180, True, False),
+            ("Snacks", "Chicken Sandwich", "Grilled chicken with lettuce.", 240, False, False),
+            ("Snacks", "Club Sandwich", "Triple decker with eggs and chicken.", 320, False, False),
+            ("Snacks", "Chicken Wings", "Spicy grilled wings 6 pcs.", 320, False, False),
+            ("Snacks", "Onion Rings", "Crispy battered onion rings.", 180, True, False),
+            ("Snacks", "Garlic Bread", "Toasted with garlic butter and herbs.", 150, True, False),
+            ("Desserts", "Chocolate Brownie", "Warm brownie with fudge sauce.", 220, True, True),
+            ("Desserts", "Brownie with Ice Cream", "Brownie plus scoop of vanilla.", 280, True, True),
+            ("Desserts", "Cheesecake Slice", "Classic New York style.", 260, True, False),
+            ("Desserts", "Blueberry Cheesecake", "With blueberry compote.", 300, True, False),
+            ("Desserts", "Chocolate Lava Cake", "Molten chocolate center.", 280, True, False),
+            ("Desserts", "Tiramisu", "Classic Italian coffee dessert.", 320, True, False),
+            ("Desserts", "Ice Cream (2 scoops)", "Choose any two flavours.", 180, True, False),
+            ("Desserts", "Gulab Jamun (2 pcs)", "Warm Indian sweet.", 120, True, False),
+            ("Main Course", "Chicken Biryani", "Aromatic basmati rice with chicken.", 420, False, True),
+            ("Main Course", "Veg Biryani", "Basmati rice with veggies and spices.", 320, True, False),
+            ("Main Course", "Chicken Curry + Rice", "Home style chicken curry.", 380, False, False),
+            ("Main Course", "Veg Thali", "Rice dal sabzi roti salad.", 350, True, False),
+            ("Main Course", "Chicken Thali", "Full plate with chicken curry.", 450, False, True),
+            ("Main Course", "Pasta Alfredo", "Creamy white sauce pasta.", 320, True, False),
+            ("Main Course", "Pasta Arrabbiata", "Spicy red sauce pasta.", 300, True, False),
+            ("Main Course", "Chicken Burger", "Grilled chicken patty and fries.", 340, False, False),
+            ("Main Course", "Veg Burger", "Veg patty and fries.", 250, True, False),
+            ("Main Course", "Pizza Margherita", "Classic tomato and mozzarella.", 380, True, False),
+            ("Main Course", "Pizza Pepperoni", "Pepperoni and cheese.", 480, False, True),
+            ("Main Course", "Chicken Sizzler", "Sizzling plate with chicken and veggies.", 550, False, False),
         ]
+        added = 0
         for cat_name, name, desc, price, veg, feat in items_data:
             if not Item.query.filter_by(name=name).first():
                 db.session.add(Item(category_id=cats[cat_name].id, name=name, description=desc,
                                     price=price, veg=veg, featured=feat))
+                added += 1
         db.session.commit()
+        print("Items added: %d total: %d" % (added, Item.query.count()))
 
         for name in ["6", "7", "8", "Patio-1", "Patio-2"]:
             if not Table.query.filter_by(name=name).first():
@@ -71,19 +111,39 @@ def run():
         def by_name(n):
             return Item.query.filter_by(name=n).first()
 
-        vdata = [("Espresso", "Single", 0), ("Espresso", "Double", 40),
-                 ("Cappuccino", "Regular", 0), ("Cappuccino", "Large", 50),
-                 ("Latte", "Regular", 0), ("Latte", "Large", 60),
-                 ("Cold Coffee", "Regular", 0), ("Cold Coffee", "Large", 50)]
+        vdata = [
+            ("Espresso", "Single", 0), ("Espresso", "Double", 40),
+            ("Cappuccino", "Regular", 0), ("Cappuccino", "Large", 50),
+            ("Latte", "Regular", 0), ("Latte", "Large", 60),
+            ("Mocha", "Regular", 0), ("Mocha", "Large", 60),
+            ("Cold Coffee", "Regular", 0), ("Cold Coffee", "Large", 50),
+            ("Iced Latte", "Regular", 0), ("Iced Latte", "Large", 50),
+            ("Frappe", "Regular", 0), ("Frappe", "Large", 60),
+            ("Cold Brew", "Regular", 0), ("Cold Brew", "Large", 40),
+            ("Americano", "Regular", 0), ("Americano", "Large", 30),
+        ]
         for iname, vname, delta in vdata:
             it = by_name(iname)
             if it and not Variant.query.filter_by(item_id=it.id, name=vname).first():
                 db.session.add(Variant(item_id=it.id, name=vname, delta=delta))
 
-        adata = [("Cappuccino", "Extra Shot", 40), ("Latte", "Extra Shot", 40),
-                 ("Latte", "Whipped Cream", 30), ("Latte", "Caramel Syrup", 25),
-                 ("Cold Coffee", "Whipped Cream", 30), ("Cold Coffee", "Ice Cream Scoop", 60),
-                 ("Chicken Burger", "Extra Cheese", 50), ("Chicken Burger", "Extra Patty", 80)]
+        adata = [
+            ("Cappuccino", "Extra Shot", 40),
+            ("Latte", "Extra Shot", 40),
+            ("Latte", "Whipped Cream", 30),
+            ("Latte", "Caramel Syrup", 25),
+            ("Cold Coffee", "Whipped Cream", 30),
+            ("Cold Coffee", "Ice Cream Scoop", 60),
+            ("Frappe", "Whipped Cream", 30),
+            ("Frappe", "Chocolate Syrup", 30),
+            ("Veg Burger", "Extra Cheese", 50),
+            ("Chicken Burger", "Extra Cheese", 50),
+            ("Chicken Burger", "Extra Patty", 80),
+            ("French Fries", "Extra Dip", 40),
+            ("Cheese Fries", "Extra Dip", 40),
+            ("Pizza Margherita", "Extra Cheese", 70),
+            ("Pizza Pepperoni", "Extra Cheese", 70),
+        ]
         for iname, aname, price in adata:
             it = by_name(iname)
             if it and not Addon.query.filter_by(item_id=it.id, name=aname).first():
@@ -125,7 +185,7 @@ def run():
                        payment_status="paid", status="preparing",
                        created=datetime.now() - timedelta(minutes=10))
             db.session.add(o3); db.session.flush()
-            for nm, pr, q in [("Chicken Momo (8pcs)", 220, 2), ("Lemon Soda", 120, 1),
+            for nm, pr, q in [("Chicken Momo (8 pcs)", 220, 2), ("Lemon Soda", 120, 1),
                               ("Chocolate Brownie", 220, 1)]:
                 db.session.add(OrderItem(order_id=o3.id, name=nm, price=pr, qty=q))
             db.session.add(PrintJob(order_id=o3.id, status="done", attempts=1))
@@ -153,17 +213,22 @@ def run():
             db.session.add(Discount(name="10% Off Snacks", kind="percent", value=10,
                                     min_order=300, max_discount=200,
                                     start=now - timedelta(days=7), end=now + timedelta(days=30),
-                                    category_id=cats["🍕 Snacks"].id))
+                                    category_id=cats["Snacks"].id))
             db.session.add(Discount(name="Rs.50 Off Coffee", kind="fixed", value=50,
                                     min_order=250,
                                     start=now - timedelta(days=7), end=now + timedelta(days=30),
-                                    category_id=cats["☕ Coffee"].id))
+                                    category_id=cats["Coffee"].id))
             db.session.commit()
 
-        print("✅ Seed complete.")
-        print("   Login: admin / admin123       (superadmin)")
-        print("          manager / manager123   (manager)")
-        print("          staff1 / staff123      (staff)")
+        print("SEED COMPLETE")
+        print("  Categories: %d" % Category.query.count())
+        print("  Items:      %d" % Item.query.count())
+        print("  Variants:   %d" % Variant.query.count())
+        print("  Add-ons:    %d" % Addon.query.count())
+        print("  Tables:     %d" % Table.query.count())
+        print("  Customers:  %d" % Customer.query.count())
+        print("  Orders:     %d" % Order.query.count())
+        print("  Login: admin / admin123")
 
 
 if __name__ == "__main__":
