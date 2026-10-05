@@ -1,263 +1,725 @@
-<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><title>{{cafe}}</title>
-<style>
-:root{--brown:#8b5a2b;--brown-d:#6d4620;--cream:#f9f3e8;--border:#ecdfc9;--text:#2b2118}
-*{box-sizing:border-box}
-body{font-family:system-ui;margin:0;background:#f4efe9;color:var(--text)}
-header{background:var(--brown);color:#fff;padding:12px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;box-shadow:0 2px 6px #0002}
-header b{font-size:16px;margin-right:8px}
-header a{color:#fff;text-decoration:none;padding:5px 10px;border-radius:6px;font-size:14px}
-header a:hover{background:#00000022}
-header a.active{background:#6d4620}
-main{padding:14px;max-width:1200px;margin:auto}
-.c{background:#fff;border-radius:12px;padding:14px;margin:8px 0;box-shadow:0 1px 3px #0001}
-table{background:#fff;width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px #0001;margin-top:8px}
-th{background:var(--cream);text-align:left;padding:10px 12px;color:#5b3d1a;font-weight:600;border-bottom:1px solid var(--border);font-size:13px;text-transform:uppercase;letter-spacing:.03em}
-td{padding:10px 12px;border-bottom:1px solid #f3ebdc;font-size:14px;vertical-align:middle}
-tr:last-child td{border-bottom:0}
-tr:hover{background:#fdf9f2}
-input,select{padding:8px 10px;margin:3px 2px;border:1px solid #d8c9b3;border-radius:6px;font-size:14px;background:#fff}
-input:focus,select:focus{outline:none;border-color:var(--brown)}
-button{background:var(--brown);color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:14px}
-button:hover{background:var(--brown-d)}
-button.sec{background:#e8dcc8;color:#5b3d1a}
-button.sec:hover{background:#dcc9a8}
-button.danger{background:#c0392b}
-button.danger:hover{background:#962d22}
-.pill{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600}
-.pill.avail{background:#d4edda;color:#1a6b1a}
-.pill.sold{background:#f8d7da;color:#8b1a1a}
-.pill.feat{background:#fde8c6;color:#8b5a2b}
-</style>
-<body>{% include '_csrf.html' %}
-<header>
-  <b>{{cafe}} Admin</b>
-  <a href="/admin">Orders</a>
-  <a href="/admin#menu">Menu</a>
-  <a href="/admin#tables">Tables</a>
-  <a href="/admin#customers">Customers</a>
-  <a href="/admin#loyalty">Loyalty</a>
-  <a href="/admin/tables"   class="{{ 'active' if page in ('tables','table') else '' }}">Table status</a>
-  <a href="/admin/customers" class="{{ 'active' if page == 'customers' else '' }}">Customer list</a>
-  <a href="/admin/promos"   class="{{ 'active' if page == 'promos' else '' }}">Promos</a>
-  <a href="/admin/reports"  class="{{ 'active' if page == 'reports' else '' }}">Reports</a>
-  <a href="/admin/pay-qr"   class="{{ 'active' if page == 'payqr' else '' }}">Pay QR</a>
-  <a href="/admin/audit"    class="{{ 'active' if page == 'audit' else '' }}">Audit</a>
-  <a href="/admin/logout" style="margin-left:auto">Logout</a>
-</header>
-<main>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>{{ cafe }}</title>
+  <style>
+    :root {
+      --brown: #8b5a2b;
+      --brown-d: #6d4620;
+      --cream: #f9f3e8;
+      --border: #ecdfc9;
+      --text: #2b2118;
+    }
 
-{% if page=='promos' %}
-<h2>Discounts & promotions</h2>
-<form method=post class=c>
-  <input name=name placeholder="Name (Weekend Special)" required>
-  <select name=kind><option value=percent>Percent %</option><option value=fixed>Fixed Rs.</option></select>
-  <input name=value placeholder=Value required size=6>
-  <input name=min_order placeholder="Min order" size=8>
-  <input name=max_discount placeholder="Max discount" size=8>
-  Start<input type=date name=start> End<input type=date name=end>
-  <select name=category_id><option value="">All items</option>{% for c in cats %}<option value={{c.id}}>{{c.name}}</option>{% endfor %}</select>
-  <button>Add</button>
-</form>
-<table>
-  <thead><tr><th>Name</th><th>Type</th><th>Value</th><th>Min</th><th>Max</th><th>Dates</th><th>Status</th></tr></thead>
-  {% for d in discounts %}
-  <tr><td>{{d.name}}</td><td>{{d.kind}}</td><td>{{d.value}}</td><td>{{d.min_order}}</td><td>{{d.max_discount or '—'}}</td>
-  <td>{{d.start.strftime('%d %b') if d.start else '…'}} → {{d.end.strftime('%d %b') if d.end else '…'}}</td>
-  <td><form method=post action=/admin/promos/{{d.id}}/toggle><button class=sec>{{'Active ✓' if d.active else 'Inactive'}}</button></form></td></tr>
-  {% endfor %}
-</table>
+    * { box-sizing: border-box; }
 
-{% elif page=='reports' %}
-<h2>Reports</h2><div id=k style="display:flex;gap:8px;flex-wrap:wrap"></div>
-<div class=c><canvas id=a height=110></canvas></div><div class=c><canvas id=b height=110></canvas></div><div class=c id=l></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script><script>
-fetch('/admin/api/reports').then(r=>r.json()).then(d=>{const k=(t,v)=>`<div class=c><small>${t}</small><h3>${v}</h3></div>`;
-document.getElementById('k').innerHTML=k('7 days','Rs. '+d.week)+k('This month','Rs. '+d.month)+k('This year','Rs. '+d.year)+k('Avg order','Rs. '+d.avg)+k('New customers today',d.new_customers)+k('All customers',d.total_customers)+k('Orders by status',Object.entries(d.status).map(e=>e.join(': ')).join(' · '));
-new Chart(a,{type:'line',data:{labels:d.labels,datasets:[{label:'Daily sales (Rs.)',data:d.sales,borderColor:'#8b5a2b'}]}});
-new Chart(b,{type:'bar',data:{labels:d.top.map(t=>t[0]),datasets:[{label:'Most ordered',data:d.top.map(t=>t[1]),backgroundColor:'#c9965a'}]}});
-l.innerHTML='<b>Highest-spending customers</b><br>'+d.loyal.map(x=>x[0]+' — Rs. '+x[1]).join('<br>')})</script>
+    body {
+      font-family: system-ui;
+      margin: 0;
+      background: #f4efe9;
+      color: var(--text);
+    }
 
-{% elif page=='audit' %}
-<h2>Admin activity log</h2>
-<table><thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>IP</th></tr></thead>
-{% for g in logs %}<tr><td>{{g.created.strftime('%d %b %H:%M')}}</td><td>{{names.get(g.admin_id)}}</td><td>{{g.action}}</td><td>{{g.ip}}</td></tr>{% endfor %}
-</table>
+    /* ---------- Header / Navbar ---------- */
+    header {
+      background: var(--brown);
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      box-shadow: 0 2px 6px #0002;
+    }
 
-{% elif page=='tables' %}
-<h2>Table status</h2>
-<table>
-  <thead><tr><th>Table</th><th>Status</th><th>Current order</th></tr></thead>
-  {% for t,s,o in rows %}<tr><td><a href=/admin/table/{{t.id}}>Table {{t.name}}</a></td><td>{{s}}</td><td>{{('#%d'%o.number) if o else '—'}}</td></tr>{% endfor %}
-</table>
+    header b {
+      font-size: 16px;
+      margin-right: 8px;
+    }
 
-{% elif page=='table' %}
-<h2>Table {{t.name}}</h2>
-<form method=post action=/admin/table/{{t.id}}/status>
-  <select name=status>{% for s in ['available','reserved','cleaning','disabled'] %}<option {{'selected' if s==t.status}}>{{s}}</option>{% endfor %}</select>
-  <button>Set status</button>
-</form>
-{% for o in orders %}<div class=c>#{{o.number}} · {{o.created.strftime('%d %b %H:%M')}} · {{o.customer.name}} · Rs. {{o.total}} · <b>{{o.status}}</b>{{' (current)' if o.status in live}}<br>{% for i in o.items %}{{i.qty}} × {{i.name}}<br>{% endfor %}</div>{% endfor %}
+    header a {
+      color: #fff;
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
 
-{% elif page=='customer' %}
-<h2>{{c.name}} {{'(disabled)' if c.disabled}}</h2>
-<p>{{c.phone}} · joined {{c.created.strftime('%d %b %Y')}}<br>
-Orders: {{orders|length}} · Spent: Rs. {{'%.0f'|format(spent)}} · Loyalty {{loy.progress}}/{{loy.required}} · Reward: {{loy.reward}} · Redeemed: {{redeemed}}</p>
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
-  <form method=post action=/admin/customer/{{c.id}}/toggle>
-    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <button class=sec type=submit>{{'Enable' if c.disabled else 'Disable'}} account</button>
-  </form>
-  <form method=post action=/admin/customer/{{c.id}}/force-logout onsubmit="return confirm('Force logout on all devices?')">
-    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <button class=sec type=submit>Force logout</button>
-  </form>
-  {% if session.role == 'superadmin' %}
-  <button class=danger type=button onclick="deleteCustomer({{ c.id }}, '{{ c.name|e }}', {{ orders|length }})">Delete permanently</button>
-  {% endif %}
-</div>
-<form method=post action=/admin/customer/{{c.id}}/adjust class=c>Adjust loyalty orders (+/−)
-  <input name=delta type=number required size=4><input name=note placeholder=Reason>
-  <button>Apply</button>
-  {% for x in txs %}<br><small>{{x.created.strftime('%d %b')}}: {{x.delta}} {{x.note}}</small>{% endfor %}
-</form>
-{% for o in orders %}<div class=c>#{{o.number}} · {{o.created.strftime('%d %b %Y')}} · Table {{o.table.name}} · Rs. {{o.total}} · {{o.status}}</div>{% endfor %}
-<script>
-async function deleteCustomer(id, name, orderCount){
-  if(!confirm(`Delete "${name}" permanently?\n\nRemoves ${orderCount} order(s), payments, and loyalty.\n\nCANNOT be undone.`)) return;
-  if(!confirm('Absolutely sure? Click OK to confirm.')) return;
-  const r = await fetch(`/admin/customer/${id}/delete`, {method:'POST', headers:{'X-CSRF':'{{ csrf_token() }}'}});
-  if(r.ok){ alert('Deleted.'); location.href='/admin/customers'; }
-  else if(r.status === 403){ alert('Only superadmin can delete.'); }
-  else { alert('Delete failed: ' + r.status); }
-}
-</script>
+    header a:hover { background: #00000022; }
+    header a.active { background: #6d4620; }
 
-{% elif page=='options' %}
-<h2>{{item.name}} — variants & add-ons</h2>
-<form method=post action=/admin/item/{{item.id}}/variant class=c>Variant (e.g. Large, +50) <input name=name required><input name=price placeholder="+ price"><button>Add</button></form>
-<form method=post action=/admin/item/{{item.id}}/addon class=c>Add-on (e.g. Extra cheese) <input name=name required><input name=price placeholder=Price><button>Add</button></form>
-<table>
-  <thead><tr><th>Type</th><th>Name</th><th>Price</th><th></th></tr></thead>
-  {% for t,rows in [('variant',variants),('addon',addons)] %}{% for r in rows %}
-  <tr><td>{{t}}</td><td>{{r.name}}</td><td>{{r.delta if t=='variant' else r.price}}</td>
-  <td><form method=post action=/admin/item/{{item.id}}/del><input type=hidden name=t value={{t}}><input type=hidden name=id value={{r.id}}><button class=sec>Delete</button></form></td></tr>
-  {% endfor %}{% endfor %}
-</table>
+    /* ---------- Layout ---------- */
+    main {
+      padding: 14px;
+      max-width: 1200px;
+      margin: auto;
+    }
 
-{% elif page=='payqr' %}
-<h2>💰 Payment QR Generator</h2>
-<p style="color:#666;max-width:640px">Enter an amount and optional note. A QR is generated below.</p>
-<form onsubmit="genPayQr(event)" style="background:#fff;border-radius:12px;padding:16px;max-width:520px;margin:12px 0">
-  <label style="display:block;margin:8px 0 4px;color:#555;font-size:.9rem">Amount (Rs.)</label>
-  <input id="pq-amt" type="number" min="1" step="1" value="500" required style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:1rem">
-  <label style="display:block;margin:12px 0 4px;color:#555;font-size:.9rem">Note (optional)</label>
-  <input id="pq-note" type="text" placeholder="e.g. Table 3 bill" maxlength="80" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:1rem">
-  <button style="background:#8b5a2b;color:#fff;border:0;padding:11px 20px;border-radius:8px;font-size:1rem;margin-top:14px;cursor:pointer">Generate QR</button>
-</form>
-<div id="pq-out" style="display:none;background:#fff;border-radius:12px;padding:20px;text-align:center;max-width:360px">
-  <img id="pq-img" alt="Payment QR" style="width:280px;height:280px">
-  <div id="pq-cap" style="color:#555;margin-top:8px"></div>
-  <a id="pq-dl" download style="display:inline-block;margin-top:14px;background:#2c2c36;color:#fff;padding:9px 16px;border-radius:8px;text-decoration:none">Download PNG</a>
-</div>
-<script>
-function genPayQr(e){
-  e.preventDefault();
-  const amt = parseInt(document.getElementById('pq-amt').value,10);
-  const note = document.getElementById('pq-note').value.trim();
-  const url = `/admin/pay-qr/${amt}.png?note=${encodeURIComponent(note)}&_t=${Date.now()}`;
-  document.getElementById('pq-img').src = url;
-  document.getElementById('pq-dl').href = url;
-  document.getElementById('pq-dl').setAttribute('download', `pay-${amt}.png`);
-  document.getElementById('pq-cap').textContent = `Rs. ${amt}${note ? ' — ' + note : ''}`;
-  document.getElementById('pq-out').style.display = 'inline-block';
-}
-</script>
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 14px;
+      margin: 8px 0;
+      box-shadow: 0 1px 3px #0001;
+    }
 
-{% elif page=='customers' %}
-<h2>👥 Customers</h2>
+    /* ---------- Tables ---------- */
+    table {
+      background: #fff;
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px #0001;
+      margin-top: 8px;
+    }
 
-{% if request.args.get('deleted') %}
-  <div class="c" style="background:#d4edda;color:#1a6b1a">Deleted {{ request.args.get('deleted') }} customer(s).</div>
-{% endif %}
+    th {
+      background: var(--cream);
+      text-align: left;
+      padding: 10px 12px;
+      color: #5b3d1a;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
 
-<form method=get class=c style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-  <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Search
-    <input name=q value="{{ q }}" placeholder="Name or phone" style="min-width:220px">
-  </label>
-  <label style="display:flex;flex-direction:column;font-size:12px;color:#666">Filter
-    <select name=status>
-      <option value="" {{ 'selected' if not status }}>All</option>
-      <option value="active" {{ 'selected' if status=='active' }}>Active only</option>
-      <option value="disabled" {{ 'selected' if status=='disabled' }}>Disabled only</option>
-      <option value="with_orders" {{ 'selected' if status=='with_orders' }}>With orders</option>
-      <option value="no_orders" {{ 'selected' if status=='no_orders' }}>No orders</option>
-    </select>
-  </label>
-  <button type=submit>Apply</button>
-  <a href="/admin/customers" style="text-decoration:none"><button type=button class=sec>Reset</button></a>
-</form>
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f3ebdc;
+      font-size: 14px;
+      vertical-align: middle;
+    }
 
-<p style="color:#555;font-size:14px;margin:12px 0 0"><b>Total:</b> {{ rows|length }} customer(s). <span style="color:#999;font-size:12px">Newest first.</span></p>
+    tr:last-child td { border-bottom: 0; }
+    tr:hover { background: #fdf9f2; }
 
-<table>
-  <thead>
-    <tr><th>ID</th><th>Name</th><th>Phone</th><th>Orders</th><th>Spent</th><th>Last order</th><th>Status</th><th style="width:260px">Actions</th></tr>
-  </thead>
-  <tbody>
-    {% for r in rows %}
-      <tr>
-        <td>{{ r.id }}</td>
-        <td><a href="/admin/customer/{{ r.id }}"><strong>{{ r.name }}</strong></a></td>
-        <td>{{ r.phone }}</td>
-        <td>{{ r.orders }}</td>
-        <td>Rs. {{ '%.0f'|format(r.spent) }}</td>
-        <td>{% if r.last_order %}{{ r.last_order.strftime('%d %b %Y') }}{% else %}—{% endif %}</td>
-        <td>{% if r.disabled %}<span class="pill sold">Disabled</span>{% else %}<span class="pill avail">Active</span>{% endif %}</td>
-        <td>
-          <form method=post action=/admin/customer/{{ r.id }}/toggle style="display:inline">
-            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-            <button class=sec type=submit>{{ 'Enable' if r.disabled else 'Disable' }}</button>
-          </form>
-          <form method=post action=/admin/customer/{{ r.id }}/force-logout style="display:inline" onsubmit="return confirm('Force logout {{ r.name|e }} from all devices?')">
-            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-            <button class=sec type=submit>Force logout</button>
-          </form>
-          {% if session.role == 'superadmin' %}
-          <button class="danger" type=button onclick="deleteCustomer({{ r.id }}, '{{ r.name|e }}', {{ r.orders }})">Delete</button>
-          {% endif %}
-        </td>
-      </tr>
-    {% else %}
-      <tr><td colspan="8" style="text-align:center;color:#888;padding:20px">No customers match the filter.</td></tr>
+    /* ---------- Forms ---------- */
+    input, select {
+      padding: 8px 10px;
+      margin: 3px 2px;
+      border: 1px solid #d8c9b3;
+      border-radius: 6px;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--brown);
+    }
+
+    /* ---------- Buttons ---------- */
+    button {
+      background: var(--brown);
+      color: #fff;
+      border: 0;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button:hover { background: var(--brown-d); }
+
+    button.sec {
+      background: #e8dcc8;
+      color: #5b3d1a;
+    }
+
+    button.sec:hover { background: #dcc9a8; }
+
+    button.danger { background: #c0392b; }
+    button.danger:hover { background: #962d22; }
+
+    /* ---------- Status pills ---------- */
+    .pill {
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .pill.avail { background: #d4edda; color: #1a6b1a; }
+    .pill.sold { background: #f8d7da; color: #8b1a1a; }
+    .pill.feat { background: #fde8c6; color: #8b5a2b; }
+  </style>
+</head>
+
+<body>
+  {% include '_csrf.html' %}
+
+  <!-- ============================================================
+       HEADER
+  ============================================================ -->
+  <header>
+    <b>{{ cafe }} Admin</b>
+    <a href="/admin">Orders</a>
+    <a href="/admin#menu">Menu</a>
+    <a href="/admin#tables">Tables</a>
+    <a href="/admin#customers">Customers</a>
+    <a href="/admin#loyalty">Loyalty</a>
+
+    <a href="/admin/tables"
+       class="{{ 'active' if page in ('tables', 'table') else '' }}">Table status</a>
+    <a href="/admin/customers"
+       class="{{ 'active' if page == 'customers' else '' }}">Customer list</a>
+    <a href="/admin/promos"
+       class="{{ 'active' if page == 'promos' else '' }}">Promos</a>
+    <a href="/admin/reports"
+       class="{{ 'active' if page == 'reports' else '' }}">Reports</a>
+    <a href="/admin/pay-qr"
+       class="{{ 'active' if page == 'payqr' else '' }}">Pay QR</a>
+    <a href="/admin/audit"
+       class="{{ 'active' if page == 'audit' else '' }}">Audit</a>
+
+    <a href="/admin/logout" style="margin-left: auto">Logout</a>
+  </header>
+
+  <main>
+
+  {# ============================================================
+     PROMOS PAGE
+  ============================================================ #}
+  {% if page == 'promos' %}
+    <h2>Discounts &amp; promotions</h2>
+
+    <form method="post" class="card">
+      <input name="name" placeholder="Name (Weekend Special)" required>
+      <select name="kind">
+        <option value="percent">Percent %</option>
+        <option value="fixed">Fixed Rs.</option>
+      </select>
+      <input name="value" placeholder="Value" required size="6">
+      <input name="min_order" placeholder="Min order" size="8">
+      <input name="max_discount" placeholder="Max discount" size="8">
+      Start <input type="date" name="start">
+      End <input type="date" name="end">
+      <select name="category_id">
+        <option value="">All items</option>
+        {% for c in cats %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+      <button>Add</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Min</th>
+          <th>Max</th>
+          <th>Dates</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in discounts %}
+          <tr>
+            <td>{{ d.name }}</td>
+            <td>{{ d.kind }}</td>
+            <td>{{ d.value }}</td>
+            <td>{{ d.min_order }}</td>
+            <td>{{ d.max_discount or '—' }}</td>
+            <td>
+              {{ d.start.strftime('%d %b') if d.start else '…' }}
+              →
+              {{ d.end.strftime('%d %b') if d.end else '…' }}
+            </td>
+            <td>
+              <form method="post" action="/admin/promos/{{ d.id }}/toggle">
+                <button class="sec">{{ 'Active ✓' if d.active else 'Inactive' }}</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {# ============================================================
+     REPORTS PAGE
+  ============================================================ #}
+  {% elif page == 'reports' %}
+    <h2>Reports</h2>
+    <div id="reports-cards" style="display: flex; gap: 8px; flex-wrap: wrap"></div>
+    <div class="card"><canvas id="chart-sales" height="110"></canvas></div>
+    <div class="card"><canvas id="chart-top" height="110"></canvas></div>
+    <div class="card" id="reports-loyal"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script>
+      // Fetch report data and render
+      fetch('/admin/api/reports')
+        .then((r) => r.json())
+        .then((data) => {
+          // Helper to make a small stat card
+          const card = (title, value) =>
+            `<div class="card"><small>${title}</small><h3>${value}</h3></div>`;
+
+          // Render top summary cards
+          document.getElementById('reports-cards').innerHTML =
+            card('7 days', 'Rs. ' + data.week) +
+            card('This month', 'Rs. ' + data.month) +
+            card('This year', 'Rs. ' + data.year) +
+            card('Avg order', 'Rs. ' + data.avg) +
+            card('New customers today', data.new_customers) +
+            card('All customers', data.total_customers) +
+            card('Orders by status',
+              Object.entries(data.status).map((e) => e.join(': ')).join(' · '));
+
+          // Sales chart
+          new Chart(document.getElementById('chart-sales'), {
+            type: 'line',
+            data: {
+              labels: data.labels,
+              datasets: [{
+                label: 'Daily sales (Rs.)',
+                data: data.sales,
+                borderColor: '#8b5a2b'
+              }]
+            }
+          });
+
+          // Most ordered items chart
+          new Chart(document.getElementById('chart-top'), {
+            type: 'bar',
+            data: {
+              labels: data.top.map((t) => t[0]),
+              datasets: [{
+                label: 'Most ordered',
+                data: data.top.map((t) => t[1]),
+                backgroundColor: '#c9965a'
+              }]
+            }
+          });
+
+          // Top-spending customers list
+          document.getElementById('reports-loyal').innerHTML =
+            '<b>Highest-spending customers</b><br>' +
+            data.loyal.map((x) => x[0] + ' — Rs. ' + x[1]).join('<br>');
+        });
+    </script>
+
+  {# ============================================================
+     AUDIT LOG PAGE
+  ============================================================ #}
+  {% elif page == 'audit' %}
+    <h2>Admin activity log</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Admin</th>
+          <th>Action</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in logs %}
+          <tr>
+            <td>{{ g.created.strftime('%d %b %H:%M') }}</td>
+            <td>{{ names.get(g.admin_id) }}</td>
+            <td>{{ g.action }}</td>
+            <td>{{ g.ip }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {# ============================================================
+     TABLE STATUS LIST
+  ============================================================ #}
+  {% elif page == 'tables' %}
+    <h2>Table status</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Table</th>
+          <th>Status</th>
+          <th>Current order</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t, s, o in rows %}
+          <tr>
+            <td><a href="/admin/table/{{ t.id }}">Table {{ t.name }}</a></td>
+            <td>{{ s }}</td>
+            <td>{{ ('#%d' % o.number) if o else '—' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {# ============================================================
+     SINGLE TABLE DETAIL
+  ============================================================ #}
+  {% elif page == 'table' %}
+    <h2>Table {{ t.name }}</h2>
+
+    <form method="post" action="/admin/table/{{ t.id }}/status">
+      <select name="status">
+        {% for s in ['available', 'reserved', 'cleaning', 'disabled'] %}
+          <option {{ 'selected' if s == t.status }}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      <button>Set status</button>
+    </form>
+
+    {% for o in orders %}
+      <div class="card">
+        #{{ o.number }} ·
+        {{ o.created.strftime('%d %b %H:%M') }} ·
+        {{ o.customer.name }} ·
+        Rs. {{ o.total }} ·
+        <b>{{ o.status }}</b>
+        {{ ' (current)' if o.status in live }}
+        <br>
+        {% for i in o.items %}
+          {{ i.qty }} × {{ i.name }}<br>
+        {% endfor %}
+      </div>
     {% endfor %}
-  </tbody>
-</table>
 
-<div class="c" style="margin-top:16px">
-  <b>Bulk cleanup</b>
-  <p style="color:#666;font-size:13px;margin:6px 0">Delete customers with no orders in the last N days. Superadmin only.</p>
-  {% if session.role == 'superadmin' %}
-  <form method=post action="/admin/customers/bulk-delete-inactive" onsubmit="return confirm('Delete all customers with no orders in the last N days? Cannot be undone.')">
-    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <input type=number name=days value=90 min=30 max=3650 style="width:100px"> days
-    <button class=danger type=submit>Bulk delete inactive</button>
-  </form>
-  {% else %}
-  <p style="color:#999"><em>Bulk delete requires superadmin.</em></p>
+  {# ============================================================
+     SINGLE CUSTOMER DETAIL
+  ============================================================ #}
+  {% elif page == 'customer' %}
+    <h2>{{ c.name }} {{ '(disabled)' if c.disabled }}</h2>
+
+    <p>
+      {{ c.phone }} · joined {{ c.created.strftime('%d %b %Y') }}<br>
+      Orders: {{ orders|length }} ·
+      Spent: Rs. {{ '%.0f'|format(spent) }} ·
+      Loyalty {{ loy.progress }}/{{ loy.required }} ·
+      Reward: {{ loy.reward }} ·
+      Redeemed: {{ redeemed }}
+    </p>
+
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0">
+      <form method="post" action="/admin/customer/{{ c.id }}/toggle">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="sec" type="submit">
+          {{ 'Enable' if c.disabled else 'Disable' }} account
+        </button>
+      </form>
+
+      <form method="post"
+            action="/admin/customer/{{ c.id }}/force-logout"
+            onsubmit="return confirm('Force logout on all devices?')">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="sec" type="submit">Force logout</button>
+      </form>
+
+      {% if session.role == 'superadmin' %}
+        <button class="danger" type="button"
+                onclick="deleteCustomer({{ c.id }}, '{{ c.name|e }}', {{ orders|length }})">
+          Delete permanently
+        </button>
+      {% endif %}
+    </div>
+
+    <form method="post" action="/admin/customer/{{ c.id }}/adjust" class="card">
+      Adjust loyalty orders (+/−)
+      <input name="delta" type="number" required size="4">
+      <input name="note" placeholder="Reason">
+      <button>Apply</button>
+      {% for x in txs %}
+        <br><small>{{ x.created.strftime('%d %b') }}: {{ x.delta }} {{ x.note }}</small>
+      {% endfor %}
+    </form>
+
+    {% for o in orders %}
+      <div class="card">
+        #{{ o.number }} ·
+        {{ o.created.strftime('%d %b %Y') }} ·
+        Table {{ o.table.name }} ·
+        Rs. {{ o.total }} ·
+        {{ o.status }}
+      </div>
+    {% endfor %}
+
+    <script>
+      async function deleteCustomer(id, name, orderCount) {
+        if (!confirm(`Delete "${name}" permanently?\n\nRemoves ${orderCount} order(s), payments, and loyalty.\n\nCANNOT be undone.`)) return;
+        if (!confirm('Absolutely sure? Click OK to confirm.')) return;
+
+        const res = await fetch(`/admin/customer/${id}/delete`, {
+          method: 'POST',
+          headers: { 'X-CSRF': '{{ csrf_token() }}' }
+        });
+
+        if (res.ok) {
+          alert('Deleted.');
+          location.href = '/admin/customers';
+        } else if (res.status === 403) {
+          alert('Only superadmin can delete.');
+        } else {
+          alert('Delete failed: ' + res.status);
+        }
+      }
+    </script>
+
+  {# ============================================================
+     ITEM OPTIONS (variants & add-ons)
+  ============================================================ #}
+  {% elif page == 'options' %}
+    <h2>{{ item.name }} — variants &amp; add-ons</h2>
+
+    <form method="post" action="/admin/item/{{ item.id }}/variant" class="card">
+      Variant (e.g. Large, +50)
+      <input name="name" required>
+      <input name="price" placeholder="+ price">
+      <button>Add</button>
+    </form>
+
+    <form method="post" action="/admin/item/{{ item.id }}/addon" class="card">
+      Add-on (e.g. Extra cheese)
+      <input name="name" required>
+      <input name="price" placeholder="Price">
+      <button>Add</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Name</th>
+          <th>Price</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for type_name, rows in [('variant', variants), ('addon', addons)] %}
+          {% for r in rows %}
+            <tr>
+              <td>{{ type_name }}</td>
+              <td>{{ r.name }}</td>
+              <td>{{ r.delta if type_name == 'variant' else r.price }}</td>
+              <td>
+                <form method="post" action="/admin/item/{{ item.id }}/del">
+                  <input type="hidden" name="t" value="{{ type_name }}">
+                  <input type="hidden" name="id" value="{{ r.id }}">
+                  <button class="sec">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {# ============================================================
+     PAYMENT QR GENERATOR
+  ============================================================ #}
+  {% elif page == 'payqr' %}
+    <h2>💰 Payment QR Generator</h2>
+    <p style="color: #666; max-width: 640px">
+      Enter an amount and optional note. A QR is generated below.
+    </p>
+
+    <form onsubmit="generatePaymentQr(event)"
+          style="background: #fff; border-radius: 12px; padding: 16px; max-width: 520px; margin: 12px 0">
+      <label style="display: block; margin: 8px 0 4px; color: #555; font-size: .9rem">
+        Amount (Rs.)
+      </label>
+      <input id="qr-amount" type="number" min="1" step="1" value="500" required
+             style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem">
+
+      <label style="display: block; margin: 12px 0 4px; color: #555; font-size: .9rem">
+        Note (optional)
+      </label>
+      <input id="qr-note" type="text" placeholder="e.g. Table 3 bill" maxlength="80"
+             style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem">
+
+      <button style="background: #8b5a2b; color: #fff; border: 0; padding: 11px 20px; border-radius: 8px; font-size: 1rem; margin-top: 14px; cursor: pointer">
+        Generate QR
+      </button>
+    </form>
+
+    <div id="qr-output"
+         style="display: none; background: #fff; border-radius: 12px; padding: 20px; text-align: center; max-width: 360px">
+      <img id="qr-image" alt="Payment QR" style="width: 280px; height: 280px">
+      <div id="qr-caption" style="color: #555; margin-top: 8px"></div>
+      <a id="qr-download" download
+         style="display: inline-block; margin-top: 14px; background: #2c2c36; color: #fff; padding: 9px 16px; border-radius: 8px; text-decoration: none">
+        Download PNG
+      </a>
+    </div>
+
+    <script>
+      function generatePaymentQr(event) {
+        event.preventDefault();
+        const amount = parseInt(document.getElementById('qr-amount').value, 10);
+        const note = document.getElementById('qr-note').value.trim();
+        const url = `/admin/pay-qr/${amount}.png?note=${encodeURIComponent(note)}&_t=${Date.now()}`;
+
+        document.getElementById('qr-image').src = url;
+        document.getElementById('qr-download').href = url;
+        document.getElementById('qr-download').setAttribute('download', `pay-${amount}.png`);
+        document.getElementById('qr-caption').textContent = `Rs. ${amount}${note ? ' — ' + note : ''}`;
+        document.getElementById('qr-output').style.display = 'inline-block';
+      }
+    </script>
+
+  {# ============================================================
+     CUSTOMER LIST
+  ============================================================ #}
+  {% elif page == 'customers' %}
+    <h2>👥 Customers</h2>
+
+    {% if request.args.get('deleted') %}
+      <div class="card" style="background: #d4edda; color: #1a6b1a">
+        Deleted {{ request.args.get('deleted') }} customer(s).
+      </div>
+    {% endif %}
+
+    <form method="get" class="card"
+          style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end">
+      <label style="display: flex; flex-direction: column; font-size: 12px; color: #666">
+        Search
+        <input name="q" value="{{ q }}" placeholder="Name or phone" style="min-width: 220px">
+      </label>
+
+      <label style="display: flex; flex-direction: column; font-size: 12px; color: #666">
+        Filter
+        <select name="status">
+          <option value="" {{ 'selected' if not status }}>All</option>
+          <option value="active" {{ 'selected' if status == 'active' }}>Active only</option>
+          <option value="disabled" {{ 'selected' if status == 'disabled' }}>Disabled only</option>
+          <option value="with_orders" {{ 'selected' if status == 'with_orders' }}>With orders</option>
+          <option value="no_orders" {{ 'selected' if status == 'no_orders' }}>No orders</option>
+        </select>
+      </label>
+
+      <button type="submit">Apply</button>
+      <a href="/admin/customers" style="text-decoration: none">
+        <button type="button" class="sec">Reset</button>
+      </a>
+    </form>
+
+    <p style="color: #555; font-size: 14px; margin: 12px 0 0">
+      <b>Total:</b> {{ rows|length }} customer(s).
+      <span style="color: #999; font-size: 12px">Newest first.</span>
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Orders</th>
+          <th>Spent</th>
+          <th>Last order</th>
+          <th>Status</th>
+          <th style="width: 260px">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.id }}</td>
+            <td><a href="/admin/customer/{{ r.id }}"><strong>{{ r.name }}</strong></a></td>
+            <td>{{ r.phone }}</td>
+            <td>{{ r.orders }}</td>
+            <td>Rs. {{ '%.0f'|format(r.spent) }}</td>
+            <td>
+              {% if r.last_order %}
+                {{ r.last_order.strftime('%d %b %Y') }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              {% if r.disabled %}
+                <span class="pill sold">Disabled</span>
+              {% else %}
+                <span class="pill avail">Active</span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="post" action="/admin/customer/{{ r.id }}/toggle" style="display: inline">
+                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                <button class="sec" type="submit">
+                  {{ 'Enable' if r.disabled else 'Disable' }}
+                </button>
+              </form>
+
+              <form method="post" action="/admin/customer/{{ r.id }}/force-logout"
+                    style="display: inline"
+                    onsubmit="return confirm('Force logout {{ r.name|e }} from all devices?')">
+                <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                <button class="sec" type="submit">Force logout</button>
+              </form>
+
+              {% if session.role == 'superadmin' %}
+                <button class="danger" type="button"
+                        onclick="deleteCustomer({{ r.id }}, '{{ r.name|e }}', {{ r.orders }})">
+                  Delete
+                </button>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="8" style="text-align: center; color: #888; padding: 20px">
+              No customers match the filter.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="card" style="margin-top: 16px">
+      <b>Bulk cleanup</b>
+      <p style="color: #666; font-size: 13px; margin: 6px 0">
+        Delete customers with no orders in the last N days. Superadmin only.
+      </p>
+
+      {% if session.role == 'superadmin' %}
+        <form method="post" action="/admin/customers/bulk-delete-inactive"
+              onsubmit="return confirm('Delete all customers with no orders in the last N days? Cannot be undone.')">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <input type="number" name="days" value="90" min="30" max="3650" style="width: 100px">
+          days
+          <button class="danger" type="submit">Bulk delete inactive</button>
+        </form>
+      {% else %}
+        <p style="color: #999"><em>Bulk delete requires superadmin.</em></p>
+      {% endif %}
+    </div>
+
+    <script>
+      async function deleteCustomer(id, name, orderCount) {
+        if (!confirm(`Delete "${name}" permanently?\n\nRemoves ${orderCount} order(s), payments, and loyalty.\n\nCANNOT be undone.`)) return;
+        if (!confirm('Absolutely sure? Click OK to confirm.')) return;
+
+        const res = await fetch(`/admin/customer/${id}/delete`, {
+          method: 'POST',
+          headers: { 'X-CSRF': '{{ csrf_token() }}' }
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+          alert('Deleted.');
+          location.reload();
+        } else if (res.status === 403) {
+          alert('Only superadmin can delete.');
+        } else {
+          alert('Delete failed: ' + (data.error || res.status));
+        }
+      }
+    </script>
   {% endif %}
-</div>
 
-<script>
-async function deleteCustomer(id, name, orderCount){
-  if(!confirm(`Delete "${name}" permanently?\n\nRemoves ${orderCount} order(s), payments, and loyalty.\n\nCANNOT be undone.`)) return;
-  if(!confirm('Absolutely sure? Click OK to confirm.')) return;
-  const r = await fetch(`/admin/customer/${id}/delete`, {method:'POST', headers:{'X-CSRF':'{{ csrf_token() }}'}});
-  const d = await r.json().catch(()=>({}));
-  if(r.ok){ alert('Deleted.'); location.reload(); }
-  else if(r.status === 403){ alert('Only superadmin can delete.'); }
-  else { alert('Delete failed: ' + (d.error || r.status)); }
-}
-</script>
-{% endif %}
-
-</main>
+  </main>
+</body>
+</html>

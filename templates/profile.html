@@ -1,0 +1,179 @@
+<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>My Profile — {{cafe}}</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui;margin:0;background:#f4efe9;color:#2b2118;padding-bottom:40px}
+header{background:#8b5a2b;color:#fff;padding:12px 14px;display:flex;justify-content:space-between;position:sticky;top:0;z-index:5;align-items:center;flex-wrap:wrap;gap:8px}
+header a{color:#fff;text-decoration:none;font-size:14px;padding:5px 10px;border-radius:6px}
+header a:hover{background:#00000022}
+main{padding:12px;max-width:720px;margin:auto}
+.card{background:#fff;border-radius:12px;padding:16px;margin:10px 0;box-shadow:0 1px 3px #0001}
+h2{margin:0 0 8px;font-size:16px;color:#8b5a2b;text-transform:uppercase;letter-spacing:.05em}
+h3{margin:0 0 4px;font-size:15px}
+
+/* Profile header */
+.profile-head{display:flex;gap:14px;align-items:center;padding:20px;background:linear-gradient(135deg,#8b5a2b,#6d4620);color:#fff;border-radius:14px;margin-bottom:10px}
+.avatar{width:64px;height:64px;border-radius:50%;background:#fff3;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;flex-shrink:0}
+.profile-info{flex:1;min-width:0}
+.profile-info .name{font-size:20px;font-weight:700;margin:0}
+.profile-info .sub{font-size:13px;opacity:.85;margin:4px 0 0}
+.profile-info .phone{font-size:13px;opacity:.85;margin:2px 0 0}
+
+/* Stat grid */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px}
+.stat{background:#fff;padding:14px;border-radius:12px;text-align:center;box-shadow:0 1px 3px #0001}
+.stat .v{font-size:22px;font-weight:700;color:#8b5a2b}
+.stat .k{font-size:12px;color:#888;margin-top:2px}
+
+/* Loyalty card */
+.loyalty{background:linear-gradient(135deg,#fdf3e3,#fbe5c8);border:2px dashed #c9965a;border-radius:14px;padding:16px;margin:10px 0}
+.loyalty .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.loyalty .top h2{margin:0;color:#8b5a2b}
+.loyalty .top .count{font-size:14px;color:#5b3d1a;font-weight:600}
+.bar{height:14px;background:#fff;border-radius:99px;overflow:hidden;border:1px solid #e8dcc8}
+.bar>div{height:100%;background:linear-gradient(90deg,#c9965a,#8b5a2b);transition:width .5s}
+.loyalty .msg{margin-top:10px;font-size:14px;color:#5b3d1a;font-weight:600}
+.tokens-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.token-pill{background:#fff;padding:8px 14px;border-radius:99px;font-size:13px;font-weight:600;color:#5b3d1a;box-shadow:0 1px 3px #0001}
+.token-pill b{color:#8b5a2b;font-size:16px}
+
+/* Order list */
+.order{background:#faf6ee;border-radius:10px;padding:12px;margin:8px 0;border-left:4px solid #8b5a2b}
+.order .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px}
+.order .num{font-weight:700;color:#5b3d1a}
+.order .time{color:#888;font-size:12px}
+.pill{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.pill.new{background:#fdeceb;color:#c0392b}
+.pill.accepted{background:#fdefdd;color:#e67e22}
+.pill.preparing{background:#fef8dc;color:#a58500}
+.pill.ready{background:#e8f9ee;color:#1a6b1a}
+.pill.served{background:#e4f0fa;color:#0a63b0}
+.pill.completed{background:#e8f6f2;color:#16a085}
+.pill.cancelled{background:#eee;color:#666}
+.order .items{font-size:13px;color:#444;margin:4px 0}
+.order .items span{display:block;padding:2px 0}
+.order .totals{margin-top:6px;font-size:13px;color:#666;text-align:right}
+.order .totals b{color:#2b2118;font-size:15px}
+
+/* Favorites */
+.fav{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eee;font-size:14px}
+.fav:last-child{border-bottom:0}
+.fav b{color:#8b5a2b}
+
+/* Empty state */
+.empty{text-align:center;color:#aaa;padding:20px 0;font-size:14px}
+</style></head>
+<body>
+<header>
+  <b>{{cafe}}</b>
+  <div>
+    <a href="/menu">← Back to menu</a>
+    <a href="/logout-customer">Log out</a>
+  </div>
+</header>
+<main>
+
+<!-- Profile header -->
+<div class="profile-head">
+  <div class="avatar">{{ customer.name[0]|upper }}</div>
+  <div class="profile-info">
+    <p class="name">{{ customer.name }}</p>
+    <p class="phone">📞 {{ customer.phone }}</p>
+    <p class="sub">Member since {{ customer.created.strftime('%d %b %Y') }}</p>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat"><div class="v">{{ total_orders }}</div><div class="k">Total orders</div></div>
+  <div class="stat"><div class="v">Rs. {{ '%.0f'|format(total_spent) }}</div><div class="k">Lifetime spend</div></div>
+  <div class="stat"><div class="v">{{ completed_count }}</div><div class="k">Completed</div></div>
+  <div class="stat"><div class="v">{{ tokens_available }}</div><div class="k">Rewards available</div></div>
+</div>
+
+<!-- Loyalty card -->
+<div class="loyalty">
+  <div class="top">
+    <h2>🎁 Loyalty Progress</h2>
+    <div class="count">{{ progress_in_cycle }} / {{ required }} orders</div>
+  </div>
+  <div class="bar"><div style="width:{{ (progress_in_cycle / required * 100) if required else 0 }}%"></div></div>
+  {% if tokens_available > 0 %}
+    <div class="msg">🎉 You have <b>{{ tokens_available }}</b> reward{{ 's' if tokens_available > 1 }} ready! Ask at the counter to redeem.</div>
+  {% else %}
+    <div class="msg">Complete {{ required - progress_in_cycle }} more order{{ 's' if (required - progress_in_cycle) > 1 }} to earn a reward.</div>
+  {% endif %}
+
+  <div class="tokens-row">
+    <div class="token-pill">🏆 Earned <b>{{ tokens_earned }}</b></div>
+    <div class="token-pill">🎯 Used <b>{{ tokens_used }}</b></div>
+    <div class="token-pill">💎 Available <b>{{ tokens_available }}</b></div>
+  </div>
+</div>
+
+<!-- Open orders -->
+<h2>🧾 Current orders</h2>
+{% if open_orders %}
+  {% for o in open_orders %}
+  <div class="order">
+    <div class="head">
+      <span class="num">#{{ o.number }}</span>
+      <span class="pill {{ o.status }}">{{ o.status }}</span>
+      <span class="time">{{ o.created.strftime('%d %b · %I:%M %p') }}</span>
+    </div>
+    <div class="items">
+      {% for i in o.items %}<span>{{ i.qty }}× {{ i.name }}</span>{% endfor %}
+    </div>
+    <div class="totals">
+      {% if o.discount > 0 %}<span>Discount Rs. {{ '%.0f'|format(o.discount) }}</span><br>{% endif %}
+      Total: <b>Rs. {{ '%.0f'|format(o.total) }}</b>
+      {% if o.payment_status == 'paid' %} · <span style="color:#16a085">Paid</span>{% else %} · <span style="color:#c0392b">Unpaid</span>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="card empty">You have no open orders.</div>
+{% endif %}
+
+<!-- Favorites -->
+{% if favorites %}
+<div class="card">
+  <h2>⭐ Your favourites</h2>
+  {% for f in favorites %}
+    <div class="fav"><span>{{ f.name }}</span><b>{{ f.qty }}×</b></div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Order history -->
+<h2>📜 Past orders</h2>
+{% if past_orders %}
+  {% for o in past_orders[:30] %}
+  <div class="order" style="opacity:.85">
+    <div class="head">
+      <span class="num">#{{ o.number }}</span>
+      <span class="pill {{ o.status }}">{{ o.status }}</span>
+      <span class="time">{{ o.created.strftime('%d %b %Y · %I:%M %p') }}</span>
+    </div>
+    <div class="items">
+      {% for i in o.items %}<span>{{ i.qty }}× {{ i.name }}</span>{% endfor %}
+    </div>
+    <div class="totals">
+      {% if o.discount > 0 %}<span>Discount Rs. {{ '%.0f'|format(o.discount) }}</span><br>{% endif %}
+      Total: <b>Rs. {{ '%.0f'|format(o.total) }}</b>
+    </div>
+  </div>
+  {% endfor %}
+  {% if past_orders|length > 30 %}
+    <div class="card empty">Showing latest 30 of {{ past_orders|length }} orders.</div>
+  {% endif %}
+{% else %}
+  <div class="card empty">No past orders yet — place your first order from the menu!</div>
+{% endif %}
+
+<!-- Footer -->
+<div style="text-align:center;margin-top:20px;color:#888;font-size:12px">
+  <a href="/menu" style="color:#8b5a2b;text-decoration:none">← Back to menu</a>
+</div>
+
+</main>
+</body></html>

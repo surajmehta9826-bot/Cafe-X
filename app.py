@@ -151,7 +151,8 @@ def setting(k):
 
 
 def loyalty(c):
-    req = int(setting("orders_required"))
+    # Guard against division by zero if settings are misconfigured
+    req = int(setting("orders_required")) or 1
     done = Order.query.filter_by(customer_id=c.id, status="completed").count() + int(
         db.session.query(db.func.coalesce(db.func.sum(LoyaltyTx.delta), 0))
         .filter_by(customer_id=c.id).scalar() or 0
@@ -378,6 +379,16 @@ def add_to_order(oid):
     all_items = OrderItem.query.filter_by(order_id=o.id).all()
     o.subtotal = float(sum(i.price * i.qty for i in all_items))
     promo, disc = extras.best_promo(float(o.subtotal), {})
+
+    # Handle loyalty reward if applied on the top-up
+    if data.get("use_reward") and loyalty(c)["reward"] and o.subtotal >= setting("min_order"):
+        extra_disc = min(
+            (o.subtotal - disc) * int(setting("percent")) / 100,
+            setting("max_discount")
+        )
+        disc += extra_disc
+        o.reward_used = True
+
     o.discount = min(disc, float(o.subtotal))
     o.total = float(o.subtotal) - float(o.discount)
     o.promo_name = promo
@@ -390,7 +401,11 @@ def order_status(oid):
     o = db.session.get(Order, oid)
     if not o or o.customer_id != session.get("cid"):
         abort(404)
-    return jsonify(status=o.status, message=MSG[o.status])
+    return jsonify(
+        status=o.status,
+        message=MSG[o.status],
+        payment_status=o.payment_status,
+    )
 
 
 @app.get("/api/my-orders")
@@ -426,6 +441,68 @@ def need(*roles):
         return w
     return deco
 
+
+# ==========================================================
+#   CUSTOMER PROFILE
+# ==========================================================
+
+@app.get("/profile")
+def profile():
+    c = db.session.get(Customer, session.get("cid", 0))
+    if not c:
+        return redirect("/menu")
+
+    orders = Order.query.filter_by(customer_id=c.id) \
+                        .order_by(Order.id.desc()).all()
+
+    OPEN = ["new", "accepted", "preparing", "ready", "served"]
+    open_orders = [o for o in orders if o.status in OPEN]
+    past_orders = [o for o in orders if o.status not in OPEN]
+
+    completed = [o for o in orders if o.status == "completed"]
+    total_spent = float(sum(o.total for o in completed))
+
+    loy = loyalty(c)
+    required = loy["required"] or 1          # guard against zero
+    completed_count = loy["completed"]
+    tokens_earned = completed_count // required
+    tokens_used = Order.query.filter(
+        Order.customer_id == c.id,
+        Order.reward_used == True,
+        Order.status != "cancelled"
+    ).count()
+    tokens_available = max(0, tokens_earned - tokens_used)
+    progress_in_cycle = completed_count % required
+
+    fav_rows = (db.session.query(OrderItem.name, db.func.sum(OrderItem.qty))
+                .join(Order, Order.id == OrderItem.order_id)
+                .filter(Order.customer_id == c.id,
+                        Order.status == "completed")
+                .group_by(OrderItem.name)
+                .order_by(db.func.sum(OrderItem.qty).desc())
+                .limit(5).all())
+    favorites = [{"name": n, "qty": int(q)} for n, q in fav_rows]
+
+    return render_template("profile.html",
+                           cafe=CAFE,
+                           table=db.session.get(Table, session.get("table_id", 0)),
+                           customer=c,
+                           open_orders=open_orders,
+                           past_orders=past_orders,
+                           total_spent=total_spent,
+                           total_orders=len(orders),
+                           completed_count=completed_count,
+                           required=required,
+                           progress_in_cycle=progress_in_cycle,
+                           tokens_earned=tokens_earned,
+                           tokens_used=tokens_used,
+                           tokens_available=tokens_available,
+                           favorites=favorites)
+
+
+# ==========================================================
+#   ADMIN AUTH
+# ==========================================================
 
 @app.route("/admin/login", methods=["GET", "POST"])
 def login():
@@ -477,13 +554,19 @@ def admin():
     )
 
 
+# ==========================================================
+#   ADMIN ORDERS API
+# ==========================================================
+
 @app.get("/admin/api/orders")
 @need()
 def admin_orders():
     q = Order.query.order_by(Order.id.desc())
     if request.args.get("q"):
         s = request.args["q"]
-        q = q.join(Customer).filter(db.or_(Customer.name.ilike(f"%{s}%"), Customer.phone.like(f"%{s}%")))
+        q = q.join(Customer).filter(
+            db.or_(Customer.name.ilike(f"%{s}%"), Customer.phone.like(f"%{s}%"))
+        )
     return jsonify([serialize_order(o) for o in q.limit(60)])
 
 
@@ -555,6 +638,10 @@ def print_bill(oid):
                            printed_at=now().strftime("%d %b %Y · %I:%M %p"))
 
 
+# ==========================================================
+#   ADMIN TABLE MANAGEMENT
+# ==========================================================
+
 @app.post("/admin/table")
 @need("manager")
 def add_table():
@@ -587,6 +674,10 @@ def qr_sheet():
     return render_template("qrsheet.html", cafe=CAFE, tables=Table.query.filter_by(active=True))
 
 
+# ==========================================================
+#   ADMIN ITEM / LOYALTY
+# ==========================================================
+
 @app.post("/admin/item/<int:iid>/toggle")
 @need("manager")
 def toggle(iid):
@@ -605,6 +696,10 @@ def save_loyalty():
     return redirect("/admin#loyalty")
 
 
+# ==========================================================
+#   PRINT QUEUE (bridge API)
+# ==========================================================
+
 def bridge_auth():
     if not secrets.compare_digest(request.headers.get("X-Print-Key", ""), PRINT_KEY):
         abort(401)
@@ -614,7 +709,9 @@ def bridge_auth():
 def print_next():
     bridge_auth()
     stale = now() - timedelta(seconds=60)
-    PrintJob.query.filter(PrintJob.status == "printing", PrintJob.updated < stale).update({"status": "pending"})
+    PrintJob.query.filter(
+        PrintJob.status == "printing", PrintJob.updated < stale
+    ).update({"status": "pending"})
     j = PrintJob.query.filter_by(status="pending").order_by(PrintJob.id).first()
     if not j:
         return jsonify(job=None)
@@ -636,6 +733,10 @@ def print_result(jid, result):
     db.session.commit()
     return jsonify(ok=True)
 
+
+# ==========================================================
+#   SEED (called from main.py in dev)
+# ==========================================================
 
 def seed():
     db.create_all()
