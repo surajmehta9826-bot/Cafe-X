@@ -262,18 +262,18 @@
   {% include '_csrf.html' %}
 
   <!-- ---------- Header ---------- -->
-  <header>
-    <div class="hleft">
-      <span class="brand">{{ cafe }}</span>
-      <span class="table-pill">Table {{ table.name }}</span>
-    </div>
-    <div class="hright">
-      {% if customer %}
-        <a href="/profile" class="profile-btn">👤 {{ customer.name }}</a>
-        <a href="/logout-customer">Logout</a>
-      {% endif %}
-    </div>
-  </header>
+<header>
+  <div class="hleft">
+    <span class="brand">{{ cafe }}</span>
+    <span class="table-pill">Table {{ table.name }}</span>
+  </div>
+  <div class="hright">
+    {% if customer %}
+      <a href="/profile" class="profile-btn">👤 {{ customer.name }}</a>
+      <a href="/logout-customer">Logout</a>
+    {% endif %}
+  </div>
+</header>
 
   <main>
 

@@ -23,7 +23,6 @@
 
     /* ============================================================
        GLOBAL / BACKGROUND
-       Warm gradient + subtle radial highlights for a cozy café feel.
     ============================================================ */
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -88,7 +87,7 @@
     section.on { display: block; }
 
     /* ============================================================
-       STAT CARDS (dashboard)
+       STAT CARDS
     ============================================================ */
     .s {
       display: flex;
@@ -154,10 +153,7 @@
     }
     button:hover { background: var(--brown-d); }
     button:active { transform: scale(0.98); }
-    button.sec {
-      background: #e8dcc8;
-      color: #5b3d1a;
-    }
+    button.sec { background: #e8dcc8; color: #5b3d1a; }
     button.sec:hover { background: #dcc9a8; }
     button.danger { background: #c0392b; }
     button.danger:hover { background: #962d22; }
@@ -218,7 +214,6 @@
     .o:hover { box-shadow: var(--shadow-md); }
     .o select { position: relative; z-index: 2; }
 
-    /* Status-based left border colors */
     .o.new       { border-left-color: #c0392b; }
     .o.accepted  { border-left-color: #e67e22; }
     .o.preparing { border-left-color: #f1c40f; }
@@ -228,7 +223,6 @@
     .o.cancelled { border-left-color: #7f8c8d; opacity: 0.65; }
     .o.paid      { background: linear-gradient(0deg, #f0fdf4, #fff 60%); }
 
-    /* Header strip */
     .bill-head {
       display: flex;
       justify-content: space-between;
@@ -256,7 +250,6 @@
     }
     .bill-time { color: var(--muted); font-size: 12px; }
 
-    /* Customer row */
     .bill-customer {
       padding: 8px 14px;
       display: flex;
@@ -274,7 +267,6 @@
     }
     .bill-customer .phone:hover { text-decoration: underline; }
 
-    /* Items */
     .bill-items {
       padding: 10px 14px;
       border-bottom: 1px dashed #eee;
@@ -291,7 +283,6 @@
     }
     .bill-item .name { color: var(--text); }
 
-    /* Totals */
     .bill-totals {
       padding: 10px 14px;
       background: #fdfaf4;
@@ -322,7 +313,6 @@
       margin-left: 4px;
     }
 
-    /* Actions */
     .bill-actions {
       display: flex;
       justify-content: space-between;
@@ -386,7 +376,7 @@
     }
 
     /* ============================================================
-       MENU PAGE — category headers + pills
+       MENU PAGE
     ============================================================ */
     .menu-cat {
       background: var(--cream);
@@ -493,7 +483,7 @@
   ============================================================ -->
   <header>
     <b>{{ cafe }} Admin</b>
-    <a onclick="go('orders')" class="active">Orders</a>
+    <a onclick="go('orders')">Orders</a>
     {% if role != 'staff' %}
       <a onclick="go('menu')">Menu</a>
       <a onclick="go('tables')">Tables</a>
@@ -710,9 +700,6 @@
     <button class="danger" onclick="clearBulkSelection()">Clear</button>
   </div>
 
-  <!-- ============================================================
-       TOASTS
-  ============================================================ -->
   <div id="toast-container"></div>
 
   <!-- ============================================================
@@ -725,16 +712,23 @@
     const go = (n) => {
       document.querySelectorAll('section').forEach((s) => s.classList.toggle('on', s.id === n));
       document.querySelectorAll('header a').forEach((a) => a.classList.remove('active'));
-      const activeLink = [...document.querySelectorAll('header a')].find((a) => a.getAttribute('onclick') === `go('${n}')`);
+      const activeLink = [...document.querySelectorAll('header a')]
+        .find((a) => a.getAttribute('onclick') === `go('${n}')`);
       if (activeLink) activeLink.classList.add('active');
     };
-    if (location.hash) go(location.hash.slice(1));
+
+    // Initial tab selection — handles both hash and no-hash loads
+    if (location.hash) {
+      go(location.hash.slice(1));
+    } else {
+      go('orders');
+    }
 
     const ST = {{ statuses|tojson }};
     let last = 0;
 
     // ============================================================
-    //  AUDIO — two-tone beep when a new order arrives
+    //  AUDIO — two-tone beep for new orders
     // ============================================================
     let audioCtx = null;
     let audioUnlocked = false;
@@ -874,16 +868,12 @@
       poll();
     }
 
-    // ============================================================
-    //  MENU FILTER
-    // ============================================================
     function filterMenu() {
       const q = document.getElementById('menu-filter').value.toLowerCase();
       document.querySelectorAll('#menu-table tbody tr[data-name]').forEach((tr) => {
         tr.style.display = tr.dataset.name.includes(q) ? '' : 'none';
       });
 
-      // Hide category headers if all their children are hidden
       const rows = [...document.querySelectorAll('#menu-table tbody tr')];
       for (let i = 0; i < rows.length; i++) {
         if (rows[i].classList.contains('menu-cat-row')) {
@@ -897,9 +887,6 @@
       }
     }
 
-    // ============================================================
-    //  BULK ACTIONS
-    // ============================================================
     function updateBulkBar() {
       const checked = document.querySelectorAll('.order-check:checked');
       document.getElementById('bulk-count').textContent = checked.length;
@@ -926,9 +913,6 @@
       poll();
     }
 
-    // ============================================================
-    //  BOOT
-    // ============================================================
     poll();
     setInterval(poll, 4000);
   </script>
